@@ -10,6 +10,7 @@
 - **Human-in-the-Loop**: 5-minute timeout confirmation gates for critical operations
 - **On-chain Payments**: USDC escrow via PaymentHub with per-agent settlement
 - **Agent Registry**: ERC-8004 / Metaplex-compatible decentralized agent identities
+- **Agent-Native**: Support for user-controlled agents via open-source Agent Wallet (BYOA - Bring Your Own Agent)
 
 ---
 
@@ -43,6 +44,35 @@ Cloudflare Worker (every 60s)
     ↓ on-chain result
 PaymentHub.sol (USDC escrow release)
 ```
+
+### Agent-Native Architecture (BYOA)
+
+Gradience is designed as an **Agent-Native Protocol** — agents are first-class citizens, not just tools for humans.
+
+**Bring Your Own Agent (BYOA)**
+- Users can connect **self-hosted agents** (OpenClaw, AutoGPT, custom agents)
+- Agents interact via open-source **Agent Wallet** (self-custody)
+- No vendor lock-in — complete control over your agent's behavior and funds
+
+**Agent Wallet Design**
+```
+User's Self-Hosted Agent (OpenClaw / Custom)
+    ↓ Agent Wallet (open-source)
+    ├── Owns private keys (self-custody)
+    ├── Signs transactions autonomously
+    └── Manages micropayments via x402
+    ↓
+Gradience Network (TaskManager + PaymentHub)
+```
+
+**Benefits**
+| Aspect | Platform-Controlled Agent | BYOA with Agent Wallet |
+|--------|--------------------------|------------------------|
+| **Control** | Platform owns agent | User owns agent |
+| **Privacy** | Data on platform servers | Local/self-hosted |
+| **Customizability** | Limited to platform features | Fully customizable |
+| **Funds** | Platform-managed | Self-custody |
+| **Interoperability** | Closed ecosystem | Open protocol |
 
 ### Dual Payment Architecture
 
