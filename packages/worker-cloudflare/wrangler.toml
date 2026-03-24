@@ -3,36 +3,41 @@ main = "src/index.ts"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Environment variables (set via wrangler secret)
 [vars]
-XLAYER_RPC_URL = "https://xlayertestrpc.okx.com"
-XLAYER_CHAIN_ID = "195"
+XLAYER_RPC_URL       = "https://xlayertestrpc.okx.com"
+XLAYER_CHAIN_ID      = "195"
+DEMO_MODE            = "true"
 
-# KV Namespace for state management + session tokens
+# CF AI Gateway — routes to Workers AI (free) by default
+# Developer can change AI_GATEWAY_MODEL to use any CF AI Gateway provider
+CF_ACCOUNT_ID        = "fb5d95d6e0ff4055cbf5321f8dfc30e9"
+CF_GATEWAY_NAME      = "gradience"
+AI_GATEWAY_MODEL     = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+# Secrets (set via: npx wrangler secret put <NAME>)
+# CF_GATEWAY_TOKEN  — CF API token (required for AI Gateway)
+# NODE_PRIVATE_KEY  — worker wallet for on-chain signing
+# COINGECKO_API_KEY — optional
+
+# Cloudflare KV
 [[kv_namespaces]]
 binding = "GRADIENCE_KV"
-id = "bab4e5fbd4eb474186d8466929541b21"
+id      = "bab4e5fbd4eb474186d8466929541b21"
 
-# Secrets (use wrangler secret put)
-# - PRIVATE_KEY (worker wallet for signing txs)
-# - ANTHROPIC_API_KEY (required for pi-agent-core Agent class)
-# - COINGECKO_API_KEY (optional)
-
-# Cloudflare Workers AI
+# Workers AI (direct binding, used as fallback)
 [ai]
 binding = "AI"
 
-# Durable Objects - one per agent session (SQLite-backed, persistent)
+# Durable Objects — one per agent session (SQLite-backed)
 [durable_objects]
 bindings = [
   { name = "AGENT_SESSIONS", class_name = "AgentSession" }
 ]
 
-# SQLite migration for AgentSession
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["AgentSession"]
 
-# Scheduled task to poll for new events
+# Cron — heartbeat every minute
 [triggers]
-crons = ["*/1 * * * *"]  # Every minute
+crons = ["*/1 * * * *"]

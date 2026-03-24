@@ -28,3 +28,4 @@ export { CloudflareRuntime } from './runtime/CloudflareRuntime';
 export { NodeRuntime } from './runtime/NodeRuntime';
 export { RuntimeFactory } from './runtime/RuntimeFactory';
 export { ExecutionNode, NodeCapability, Task, TaskRequirements } from './runtime/ExecutionNode';
+export type { NodeConfig } from './runtime/ExecutionNode';

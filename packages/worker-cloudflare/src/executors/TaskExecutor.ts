@@ -61,7 +61,7 @@ export class TaskExecutor {
   private initBlockchain() {
     if (!this._provider) {
       this._provider = new ethers.JsonRpcProvider(this.env.XLAYER_RPC_URL);
-      this._wallet = new ethers.Wallet(this.env.PRIVATE_KEY, this._provider);
+      this._wallet = new ethers.Wallet(this.env.NODE_PRIVATE_KEY, this._provider);
       this._taskManager = new ethers.Contract(
         CONTRACTS.taskManager,
         TASK_MANAGER_ABI,
