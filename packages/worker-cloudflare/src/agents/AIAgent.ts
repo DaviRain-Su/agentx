@@ -100,19 +100,30 @@ export class AIAgent {
   constructor(private env: Env) {}
 
   /**
-   * Execute a workflow step using LLM reasoning + tool calls
+   * Execute a workflow step:
+   * 1. Run tools deterministically based on agentType (reliable)
+   * 2. Use LLM to reason about the result (AI layer)
    */
   async execute(
     agentType: string,
     config: Record<string, unknown>,
     previousResults: Record<string, unknown>[]
   ): Promise<AIAgentResult> {
-    const systemPrompt = this.buildSystemPrompt(agentType);
-    const userPrompt = this.buildUserPrompt(agentType, config, previousResults);
-
     try {
-      const result = await this.runAgentLoop(systemPrompt, userPrompt);
-      return { agentId: agentType, ...result };
+      // Step 1: Execute tool deterministically
+      const toolResult = await this.runTool(agentType, config, previousResults);
+      const toolsUsed = [this.agentTypeToTool(agentType)];
+
+      // Step 2: Ask LLM to reason about the result
+      const reasoning = await this.reason(agentType, config, toolResult);
+
+      return {
+        agentId: agentType,
+        success: true,
+        output: { ...toolResult as object, aiReasoning: reasoning },
+        reasoning,
+        toolsUsed,
+      };
     } catch (error: any) {
       console.error(`[AIAgent:${agentType}] Error:`, error);
       return {
@@ -123,81 +134,84 @@ export class AIAgent {
     }
   }
 
-  /**
-   * Agentic loop: LLM reasons → calls tools → reasons again → final answer
-   */
-  private async runAgentLoop(
-    systemPrompt: string,
-    userPrompt: string
-  ): Promise<Omit<AIAgentResult, "agentId">> {
-    const messages: RoleScopedChatInput[] = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ];
+  /** Map agentType to primary tool name */
+  private agentTypeToTool(agentType: string): string {
+    const map: Record<string, string> = {
+      "price-monitor": "fetch_token_price",
+      "condition-eval": "evaluate_condition",
+      "trade-executor": "prepare_trade",
+    };
+    return map[agentType] || agentType;
+  }
 
-    const toolsUsed: string[] = [];
+  /** Execute the primary tool for this agentType */
+  private async runTool(
+    agentType: string,
+    config: Record<string, unknown>,
+    previousResults: Record<string, unknown>[]
+  ): Promise<unknown> {
+    switch (agentType) {
+      case "price-monitor":
+        return this.toolFetchPrice(
+          config.token as string,
+          (config.source as string) || "binance"
+        );
+      case "condition-eval": {
+        // Get price from previous step
+        const prevPrice = this.extractPrice(previousResults);
+        return this.toolEvaluateCondition(
+          prevPrice ?? (config.value as number) ?? 0,
+          (config.operator as string) || ">",
+          (config.threshold as number) || 0
+        );
+      }
+      case "trade-executor": {
+        const prevPrice = this.extractPrice(previousResults);
+        return this.toolPrepareTrade(
+          (config.action as string) || "buy",
+          (config.token as string) || "ETH",
+          (config.amount as string) || "0.1",
+          prevPrice ?? undefined
+        );
+      }
+      default:
+        throw new Error(`Unknown agent type: ${agentType}`);
+    }
+  }
 
-    // Max 3 rounds to prevent infinite loops
-    for (let round = 0; round < 3; round++) {
+  /** Extract price value from previous step results */
+  private extractPrice(previousResults: Record<string, unknown>[]): number | null {
+    for (const r of previousResults) {
+      const output = (r as any)?.output;
+      if (output?.price) return Number(output.price);
+      if (output?.value) return Number(output.value);
+    }
+    return null;
+  }
+
+  /** Use LLM to add reasoning/analysis to the tool result */
+  private async reason(
+    agentType: string,
+    config: Record<string, unknown>,
+    toolResult: unknown
+  ): Promise<string> {
+    try {
+      const prompt = `You are an AI agent in a decentralized network. You just executed a ${agentType} task.
+
+Config: ${JSON.stringify(config)}
+Result: ${JSON.stringify(toolResult)}
+
+Provide a brief 1-2 sentence analysis of this result and what it means for the workflow.`;
+
       const response = await this.env.AI.run(this.MODEL, {
-        messages,
-        tools: TOOLS,
-        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 150,
       });
 
-      // Tool call requested
-      if (
-        response.tool_calls &&
-        Array.isArray(response.tool_calls) &&
-        response.tool_calls.length > 0
-      ) {
-        // Add assistant message with tool call
-        messages.push({
-          role: "assistant",
-          content: response.response || "",
-          // @ts-ignore - tool_calls is valid in the API
-          tool_calls: response.tool_calls,
-        });
-
-        // Execute each tool and add results
-        for (const toolCall of response.tool_calls) {
-          const toolName = toolCall.name;
-          const toolArgs = toolCall.arguments as Record<string, unknown>;
-
-          console.log(`[AIAgent] Calling tool: ${toolName}`, toolArgs);
-          toolsUsed.push(toolName);
-
-          const toolResult = await this.executeTool(toolName, toolArgs);
-
-          messages.push({
-            role: "tool",
-            // @ts-ignore
-            tool_call_id: toolCall.id,
-            content: JSON.stringify(toolResult),
-          });
-        }
-
-        // Continue loop for next LLM reasoning round
-        continue;
-      }
-
-      // No more tool calls — LLM gave final answer
-      const finalText = response.response || "";
-      const parsed = this.parseOutput(finalText);
-
-      return {
-        success: parsed.success,
-        output: parsed.data,
-        reasoning: finalText,
-        toolsUsed,
-      };
+      return (response as any).response || "Task completed successfully.";
+    } catch {
+      return "Task completed successfully.";
     }
-
-    return {
-      success: false,
-      error: "Agent loop exceeded max rounds",
-      toolsUsed,
-    };
   }
 
   // ─── Tool Implementations ────────────────────────────────────────────────────
@@ -210,7 +224,7 @@ export class AIAgent {
       case "fetch_token_price":
         return this.toolFetchPrice(
           args.token as string,
-          (args.source as string) || "coingecko"
+          (args.source as string) || "binance"
         );
       case "evaluate_condition":
         return this.toolEvaluateCondition(
@@ -235,8 +249,19 @@ export class AIAgent {
     source: string
   ): Promise<unknown> {
     return withApiRetry(async () => {
+      // CoinGecko blocks Cloudflare IPs without paid key — always use Binance
+      if (source === "coingecko" && !this.env.COINGECKO_API_KEY) {
+        source = "binance";
+      }
       if (source === "binance") {
-        const symbol = `${token.toUpperCase()}USDT`;
+        // Map CoinGecko IDs to Binance tickers
+        const TICKER_MAP: Record<string, string> = {
+          ethereum: "ETH", bitcoin: "BTC", solana: "SOL",
+          "binancecoin": "BNB", "matic-network": "MATIC",
+          avalanche: "AVAX", polkadot: "DOT", chainlink: "LINK",
+        };
+        const ticker = TICKER_MAP[token.toLowerCase()] || token.toUpperCase();
+        const symbol = `${ticker}USDT`;
         const res = await fetch(
           `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`
         );
