@@ -1,10 +1,28 @@
-// Contract Addresses
-export const CONTRACTS = {
-  taskManager: process.env.NEXT_PUBLIC_TASK_MANAGER_ADDRESS || '0x39223444d2f9a4d6769e91aa7908CB22CA3A8686',
-  paymentHub: process.env.NEXT_PUBLIC_PAYMENT_HUB_ADDRESS || '0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60',
-  usdc: '0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e',
-  agentRegistry8004: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
+import { ethers } from 'ethers';
+
+// Helper to validate and checksum addresses
+const getAddress = (addr: string): string => {
+  try {
+    return ethers.getAddress(addr);
+  } catch (e) {
+    console.warn(`Invalid address: ${addr}`);
+    return addr;
+  }
 };
+
+// Contract Addresses (with checksum validation)
+export const CONTRACTS = {
+  taskManager: getAddress(process.env.NEXT_PUBLIC_TASK_MANAGER_ADDRESS || '0x39223444d2f9a4d6769e91aa7908CB22CA3A8686'),
+  paymentHub: getAddress(process.env.NEXT_PUBLIC_PAYMENT_HUB_ADDRESS || '0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60'),
+  usdc: getAddress('0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e'),
+  agentRegistry8004: getAddress('0x8004A818BFB912233c491871b3d84c89A494BD9e'),
+};
+
+// Multi-RPC endpoints for redundancy
+export const RPC_ENDPOINTS = [
+  'https://xlayertestrpc.okx.com',
+  'https://rpc.xlayer.tech/testnet',
+];
 
 // TaskManager ABI (simplified)
 export const TASK_MANAGER_ABI = [
