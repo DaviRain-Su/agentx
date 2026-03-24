@@ -59,6 +59,61 @@
 - [ ] **Solana contracts** - Already have framework, needs deployment
 - [ ] **Solana frontend** - A2A marketplace UI
 
+## 🎯 XLayer 审查落地清单（仅 XLayer）
+
+> 目标：把“可演示 Demo”补齐为“可提交的 XLayer 版本”。
+
+### P0（今天必须完成）
+
+- [ ] **切到 XLayer 主网部署（硬性要求）**
+  - [ ] 部署 `TaskManager`、`PaymentHub`、`TeamRegistry` 到主网
+  - [ ] 更新前端与 Worker 合约地址为主网地址
+  - [ ] `docs/SUBMISSION.md` 同步主网地址与链信息
+  - **DoD**: 前端连接主网后可读到新合约状态
+
+- [ ] **打通支付闭环（Task ↔ Escrow ↔ Release/Refund）**
+  - [ ] 前端任务创建流程先 `PaymentHub.createEscrow`
+  - [ ] 任务执行成功后可触发 `releaseEscrow`
+  - [ ] 任务取消/失败后可触发 `refundEscrow`
+  - **DoD**: 单任务全链路完成后，USDC 流向正确（用户/平台/Agent）
+
+- [ ] **打通 Worker 自动执行闭环**
+  - [ ] 将 `TaskExecutor` 接入 Worker 主入口调度
+  - [ ] 监听 `TaskCreated` 并触发执行
+  - [ ] 步骤结果回写 `recordStepCompletion`
+  - **DoD**: 不人工干预情况下，任务可从 created → completed/failed
+
+- [ ] **完成 E2E 验证（按提交流程）**
+  - [ ] Create task
+  - [ ] Human approval
+  - [ ] Worker execution
+  - [ ] On-chain completion + payment settlement
+  - **DoD**: 录屏一次完整流程，链上状态与前端状态一致
+
+- [ ] **部署并接入 TeamRegistry**
+  - [ ] 部署合约并配置 `NEXT_PUBLIC_TEAM_REGISTRY_ADDRESS`
+  - [ ] Teams 页面可真实读写（创建团队、雇佣团队）
+  - **DoD**: `/teams` 页不再使用零地址，最少完成一次链上 hire
+
+### P1（明天优先）
+
+- [ ] **最小 OnchainOS 集成（至少一个真实调用）**
+  - [ ] 引入 OKX/OnchainOS SDK 或 DEX API
+  - [ ] 在 DeFi/交易流程中展示真实调用结果
+  - **DoD**: Demo 中可展示 1 个真实 OKX 生态调用
+
+- [ ] **清理核心路径中的 Mock 依赖**
+  - [ ] `workflows/tasks/teams` 主流程不依赖 mock 数据
+  - [ ] 保留 mock 仅用于 fallback 或演示开关
+  - **DoD**: 断开 mock 后主流程仍可跑通
+
+### 发布前 Gate（必须全绿）
+
+- [ ] 主网合约地址、前端地址、Worker 地址全部可访问
+- [ ] E2E 脚本执行成功（至少 1 次）
+- [ ] 演示视频（2-3 分钟）录制完成
+- [ ] 提交材料与仓库信息一致（地址、命令、截图）
+
 ## 🚀 Deployment Commands
 
 ### Deploy TeamRegistry (if needed)
