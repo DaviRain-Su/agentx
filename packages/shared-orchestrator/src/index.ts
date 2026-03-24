@@ -22,8 +22,8 @@ export { HumanInLoopManager, ConfirmationManager } from './human-in-loop/Confirm
 // State
 export { StateManager, XurlStateManager } from './state/StateManager';
 
-// Runtime
-export * from './runtime/types';
+// Runtime (explicit exports to avoid name collision with ./types ExecutionContext)
+export type { RuntimeConfig, AgentRuntime, ExecutionResult, AgentDefinition, HealthStatus, RuntimeMetrics, RuntimeType } from './runtime/types';
 export { CloudflareRuntime } from './runtime/CloudflareRuntime';
 export { NodeRuntime } from './runtime/NodeRuntime';
 export { RuntimeFactory } from './runtime/RuntimeFactory';

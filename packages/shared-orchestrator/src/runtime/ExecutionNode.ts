@@ -265,7 +265,7 @@ export class ExecutionNode {
   }
 
   private encodeCapabilities(capabilities: NodeCapability): string {
-    return ethers.toUtf8Bytes(JSON.stringify(capabilities));
+    return ethers.hexlify(ethers.toUtf8Bytes(JSON.stringify(capabilities)));
   }
 
   private async signRegistration(nodeId: string, endpoint: string): Promise<string> {

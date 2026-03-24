@@ -33,6 +33,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "ethers": "^6.16.0",
     "zod": "^3.22.0"
   }
 }
