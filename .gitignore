@@ -56,3 +56,4 @@ lib/
 
 # Misc
 *.tsbuildinfo
+.gstack/
