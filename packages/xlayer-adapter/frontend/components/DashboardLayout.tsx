@@ -112,7 +112,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <main
-        className={`flex-1 min-w-0 w-full transition-all duration-300 overflow-hidden ${
+        className={`flex-1 min-w-0 transition-all duration-300 ${
           isSidebarOpen ? "ml-64" : "ml-16"
         }`}
       >
@@ -139,7 +139,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <div className="p-6 w-full overflow-x-hidden">{children}</div>
+        <div className="p-6">{children}</div>
       </main>
     </div>
   );

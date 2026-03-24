@@ -18,6 +18,7 @@ build/
 .next/
 out/
 cache/
+**/.next/
 **/out/
 **/cache/
 
