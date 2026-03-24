@@ -37,30 +37,30 @@ export default function TeamsPage() {
 
   return (
     <DashboardLayout>
-      <div className="w-full h-[calc(100vh-140px)] flex gap-4">
+      <div className="h-[calc(100vh-140px)] flex gap-6">
         {/* Team List */}
-        <div className="w-80 card flex flex-col">
+        <div className="w-80 border border-white/10 bg-white/5 flex flex-col">
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <h2 className="font-semibold">{t("navTeams", lang)}</h2>
-            <button className="p-2 hover:bg-white/5 rounded">
+            <h2 className="font-medium text-white">{t("navTeams", lang)}</h2>
+            <button className="p-2 hover:bg-white/5 transition text-white/60 hover:text-white">
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto">
             {MOCK_TEAMS.map((team) => (
               <button
                 key={team.id}
                 onClick={() => setActiveTeam(team)}
-                className={`w-full p-3 rounded-lg text-left transition ${
+                className={`w-full p-4 text-left transition-all border-l-2 ${
                   activeTeam.id === team.id
-                    ? "bg-white/10"
-                    : "hover:bg-white/5"
+                    ? "bg-white/10 border-white"
+                    : "hover:bg-white/5 border-transparent"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">{team.name}</span>
+                  <span className="font-medium text-white">{team.name}</span>
                   {team.unread > 0 && (
-                    <span className="w-5 h-5 bg-blue-500 rounded-full text-xs flex items-center justify-center">
+                    <span className="w-5 h-5 bg-white text-black text-xs flex items-center justify-center font-bold">
                       {team.unread}
                     </span>
                   )}
@@ -72,11 +72,11 @@ export default function TeamsPage() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 card flex flex-col">
+        <div className="flex-1 border border-white/10 bg-white/5 flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">{activeTeam.name}</h3>
+              <h3 className="font-medium text-white">{activeTeam.name}</h3>
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <Users className="w-4 h-4" />
                 {activeTeam.members.length} agents
@@ -92,19 +92,19 @@ export default function TeamsPage() {
                 className={`flex gap-3 ${msg.type === "user" ? "flex-row-reverse" : ""}`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`w-8 h-8 flex items-center justify-center text-xs font-medium ${
                     msg.type === "user"
-                      ? "bg-blue-500"
-                      : "bg-white/10"
+                      ? "bg-white text-black"
+                      : "border border-white/20 text-white/60"
                   }`}
                 >
                   {msg.type === "user" ? "Y" : "A"}
                 </div>
                 <div
-                  className={`max-w-md px-4 py-2 rounded-lg ${
+                  className={`max-w-md px-4 py-2 ${
                     msg.type === "user"
-                      ? "bg-blue-500/20 text-blue-100"
-                      : "bg-white/5"
+                      ? "bg-white/10 text-white"
+                      : "border border-white/10 text-white/80"
                   }`}
                 >
                   <div className="text-xs text-white/50 mb-1">{msg.sender}</div>
@@ -122,9 +122,9 @@ export default function TeamsPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="input flex-1"
+                className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 transition"
               />
-              <button className="btn-primary px-4">
+              <button className="px-4 py-3 bg-white text-black hover:bg-white/90 transition">
                 <Send className="w-4 h-4" />
               </button>
             </div>

@@ -82,9 +82,23 @@ export function WorkflowSubmit({ onClose }: WorkflowSubmitProps) {
       
       setTxHash(tx.hash);
       const receipt = await tx.wait();
-      
-      // Extract task ID from event (simplified)
-      setTaskId(receipt?.blockNumber?.toString() || "unknown");
+
+      // Extract task ID from TaskCreated event
+      let extractedTaskId = receipt?.blockNumber?.toString() || "unknown";
+      if (receipt?.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = taskManager.interface.parseLog(log);
+            if (parsed?.name === "TaskCreated") {
+              extractedTaskId = parsed.args.taskId?.toString() || extractedTaskId;
+              break;
+            }
+          } catch {
+            // not our event, skip
+          }
+        }
+      }
+      setTaskId(extractedTaskId);
       
     } catch (err: any) {
       console.error("Submit failed:", err);

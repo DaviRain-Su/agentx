@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWeb3 } from "./Web3Provider";
@@ -20,7 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 
-const NAV_ITEMS: { id: string; label: "Home" | "navWorkflows" | "navMarket" | "navTeams" | "navTasks" | "Octo-Kinetic"; icon: typeof Home; href: string }[] = [
+const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "workflows", label: "navWorkflows", icon: Workflow, href: "/workflows" },
   { id: "market", label: "navMarket", icon: ShoppingCart, href: "/market" },
@@ -38,23 +38,101 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { lang, toggleLang } = useLangStore();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Particle animation - same as LandingPage
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const particles: Array<{
+      x: number; y: number; vx: number; vy: number; size: number;
+    }> = [];
+
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2,
+      });
+    }
+
+    let animationId: number;
+    const animate = () => {
+      ctx.fillStyle = 'rgba(2, 2, 2, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw connections
+      particles.forEach((p1, i) => {
+        particles.slice(i + 1).forEach((p2) => {
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 150) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - dist / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        });
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#060e20] text-[#dee5ff] flex">
+    <div className="min-h-screen bg-[#020202] text-white relative">
+      {/* Particle Background - same as LandingPage */}
+      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />
+
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-40 bg-[#0f1930] border-r border-[#40485d]/30 transition-all duration-300 flex-shrink-0 ${
+        className={`fixed left-0 top-0 bottom-0 z-40 bg-[#0a0a0f]/95 border-r border-white/10 backdrop-blur-sm transition-all duration-300 flex-shrink-0 ${
           isSidebarOpen ? "w-72" : "w-20"
         }`}
       >
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-[#40485d]/30">
+        <div className="h-20 flex items-center px-6 border-b border-white/10">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#ba9eff] to-[#53ddfc] flex items-center justify-center">
-              <Terminal className="w-5 h-5 text-[#39008c]" />
+            <div className="w-10 h-10 border border-white/30 flex items-center justify-center shrink-0">
+              <Terminal className="w-5 h-5" />
             </div>
             {isSidebarOpen && (
-              <span className="font-headline font-bold text-xl tracking-tight text-[#dee5ff]">
+              <span className="font-bold tracking-wider text-white">
                 NEURAL PRISM
               </span>
             )}
@@ -62,7 +140,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
@@ -71,15 +149,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${
+                className={`flex items-center gap-4 px-4 py-3 transition-all ${
                   isActive
-                    ? "bg-[#ba9eff]/10 text-[#ba9eff] border border-[#ba9eff]/20"
-                    : "text-[#a3aac4] hover:bg-white/5 hover:text-[#dee5ff]"
+                    ? "bg-white/10 border-l-2 border-white text-white"
+                    : "text-white/60 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
                 }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && (
-                  <span className="font-medium font-headline">{item.label === "Home" ? "Home" : t(item.label as keyof typeof translations.en, lang)}</span>
+                  <span className="font-medium text-sm">
+                    {item.label === "Home" ? "Home" : t(item.label as keyof typeof translations.en, lang)}
+                  </span>
                 )}
               </Link>
             );
@@ -87,46 +167,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         {/* Bottom section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#40485d]/30">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
           {/* Language toggle */}
           <button
             onClick={toggleLang}
-            className="w-full flex items-center gap-4 px-4 py-3 text-[#a3aac4] hover:bg-white/5 hover:text-[#dee5ff] rounded-xl transition-all mb-2"
+            className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all mb-1"
           >
             <Globe className="w-5 h-5 shrink-0" />
             {isSidebarOpen && (
-              <span className="font-medium">{lang === "en" ? "English" : "中文"}</span>
+              <span className="font-medium text-sm">{lang === "en" ? "English" : "中文"}</span>
             )}
           </button>
 
           {/* Settings */}
-          <button className="w-full flex items-center gap-4 px-4 py-3 text-[#a3aac4] hover:bg-white/5 hover:text-[#dee5ff] rounded-xl transition-all mb-2">
+          <button className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all mb-1">
             <Settings className="w-5 h-5 shrink-0" />
-            {isSidebarOpen && <span className="font-medium">Settings</span>}
+            {isSidebarOpen && <span className="font-medium text-sm">Settings</span>}
           </button>
 
           {/* Disconnect */}
           <button
             onClick={disconnect}
-            className="w-full flex items-center gap-4 px-4 py-3 text-[#a3aac4] hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all"
+            className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-red-400 transition-all"
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            {isSidebarOpen && <span className="font-medium">{t("disconnect", lang)}</span>}
+            {isSidebarOpen && <span className="font-medium text-sm">{t("disconnect", lang)}</span>}
           </button>
         </div>
       </aside>
 
       {/* Main content */}
       <main
-        className={`flex-1 min-w-0 transition-all duration-300 ${
+        className={`flex-1 min-w-0 transition-all duration-300 relative z-10 ${
           isSidebarOpen ? "ml-72" : "ml-20"
         }`}
       >
         {/* Header */}
-        <header className="h-20 flex items-center justify-between px-8 border-b border-[#40485d]/30 bg-[#060e20]/80 backdrop-blur-xl sticky top-0 z-30">
+        <header className="h-20 flex items-center justify-between px-8 border-b border-white/10 bg-[#020202]/80 backdrop-blur-sm sticky top-0 z-30">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2.5 hover:bg-white/5 rounded-xl transition border border-[#40485d]/30"
+            className="p-2 hover:bg-white/5 transition text-white/60 hover:text-white"
           >
             <ChevronRight
               className={`w-5 h-5 transition-transform ${
@@ -136,16 +216,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
 
           <div className="flex items-center gap-4">
-            <div className="text-sm text-[#a3aac4]">
-              <span className="text-[#6d758c]">Wallet:</span>{" "}
+            <div className="text-sm text-white/60">
+              <span className="text-white/40">Wallet:</span>{" "}
               {address?.slice(0, 6)}...{address?.slice(-4)}
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#ba9eff] to-[#53ddfc]" />
+            <div className="w-10 h-10 border border-white/30 flex items-center justify-center">
+              <span className="text-xs font-bold">{address?.slice(0, 2)}</span>
+            </div>
           </div>
         </header>
 
         {/* Page content */}
-        <div className="p-8 retro-grid min-h-[calc(100vh-80px)]">
+        <div className="p-8 min-h-[calc(100vh-80px)]">
           {children}
         </div>
       </main>

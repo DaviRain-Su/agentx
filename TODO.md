@@ -36,21 +36,21 @@ gradience/
 - [x] **2.1** ~~AgentRegistry.sol~~ ❌ 删除（使用 Charlie 的 8004）
 - [x] **2.2** TaskManager.sol ✅ 更新（移除 AgentRegistry 依赖）
 - [x] **2.3** PaymentHub.sol ✅ 保留（USDC 托管/支付）
-- [ ] **2.4** 部署到 X Layer 测试网 ⏳ 待执行
+- [x] **2.4** 部署到 X Layer 测试网 ✅ TaskManager + PaymentHub 已部署
 
 **产出:** 
 - `TaskManager.sol` - 工作流编排核心
 - `PaymentHub.sol` - USDC 支付托管
 - 集成 Charlie 8004 Agent Registry（无需部署）
 
-### Phase 3: X Layer 前端 + 集成 (8-12h) ⏳ PENDING
+### Phase 3: X Layer 前端 + 集成 (8-12h) ✅ COMPLETED
 
-- [ ] **3.1** 初始化前端 (Next.js + OKX Connect)
-- [ ] **3.2** 工作流配置界面
-- [ ] **3.3** 人在回路弹窗
-- [ ] **3.4** 集成共享核心
-- [ ] **3.5** 实现三个 Agent (PriceMonitor, Condition, TradeExecution)
-- [ ] **3.6** 完整 Demo 测试
+- [x] **3.1** 初始化前端 (Next.js + OKX Connect)
+- [x] **3.2** 工作流配置界面
+- [x] **3.3** 人在回路弹窗
+- [x] **3.4** 集成共享核心 (mockService + 链上轮询)
+- [x] **3.5** 实现三个 Agent (PriceMonitor, Condition, TradeExecution) — Worker
+- [ ] **3.6** 完整 Demo 测试 ⏳
 
 ### Phase 4: X Layer 优化 + 文档 (14-18h) ⏳ PENDING
 
@@ -80,13 +80,13 @@ gradience/
 - [ ] **6.3** Token Launch 集成 (Metaplex Genesis)
 - [ ] **6.4** x402 Payment 实现
 
-### Phase 7: Solana 前端 (6-10h) ⏳ PENDING
+### Phase 7: Solana 前端 (6-10h) 🟡 IN PROGRESS
 
-- [ ] **7.1** 初始化 Solana 前端
-- [ ] **7.2** A2A 市场界面
-- [ ] **7.3** Token 启动界面
-- [ ] **7.4** 集成共享核心
-- [ ] **7.5** 完整 Demo 测试
+- [x] **7.1** 初始化 Solana 前端 (Next.js + Phantom)
+- [x] **7.2** A2A 市场界面 (mock data)
+- [x] **7.3** Agent Registry 界面
+- [ ] **7.4** Token 启动界面 ⏳
+- [ ] **7.5** 完整 Demo 测试 ⏳
 
 ### Phase 8: 双版本测试 (12-16h) ⏳ PENDING
 
