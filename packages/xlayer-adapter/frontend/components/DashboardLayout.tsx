@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { id: "market", label: "navMarket", icon: ShoppingCart, href: "/market" },
   { id: "teams", label: "navTeams", icon: Users, href: "/teams" },
   { id: "tasks", label: "navTasks", icon: ClipboardList, href: "/tasks" },
+  { id: "agent", label: "Agent Terminal", icon: Terminal, href: "/agent" },
   { id: "octo", label: "Octo-Kinetic", icon: Zap, href: "/octo" },
 ];
 
@@ -158,7 +159,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Icon className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && (
                   <span className="font-medium text-sm">
-                    {item.label === "Home" ? "Home" : t(item.label as keyof typeof translations.en, lang)}
+                    {item.label === "Home" || item.label === "Agent Terminal" || item.label === "Octo-Kinetic"
+                      ? item.label
+                      : t(item.label as keyof typeof translations.en, lang)}
                   </span>
                 )}
               </Link>
