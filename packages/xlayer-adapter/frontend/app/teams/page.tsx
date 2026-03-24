@@ -300,11 +300,11 @@ export default function TeamsPage() {
                     <h3 className="font-medium text-white">{activeTeam.name}</h3>
                     <div className="flex items-center gap-4 text-sm text-white/50 mt-1">
                       <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" /
+                        <Users className="w-4 h-4" />
                         {activeTeam.agentDIDs.length} agents
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" /
+                        <Clock className="w-4 h-4" />
                         Min {formatDuration(activeTeam.minDuration)}
                       </span>
                     </div>

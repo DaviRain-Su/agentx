@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@gradience/shared-orchestrator": "file:../shared-orchestrator",
+    "@mariozechner/pi-agent-core": "^0.62.0",
+    "@mariozechner/pi-ai": "^0.62.0",
+    "@sinclair/typebox": "^0.34.48",
     "ethers": "^6.11.0"
   },
   "devDependencies": {
