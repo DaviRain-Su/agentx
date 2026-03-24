@@ -44,11 +44,24 @@ Cloudflare Worker (every 60s)
 PaymentHub.sol (USDC escrow release)
 ```
 
-### Key Features Demonstrated
-1. **Workflow Creation** — select template → approve USDC → create on-chain task
-2. **Real-time Status** — tasks page polls chain every 10s showing live status
-3. **Human-in-the-Loop** — step confirmation modal with 5-minute countdown
-4. **Multi-mode Execution** — sequential, parallel, conditional workflow types
+### Dual Payment Architecture
+
+Gradience implements a **dual-payment model** optimized for different transaction patterns:
+
+| Payment Type | Protocol | Use Case | Characteristics |
+|-------------|----------|----------|-----------------|
+| **User → Agent** | USDC Escrow (PaymentHub) | Task execution payment | Large amounts, human approval required, secure settlement |
+| **Agent → Agent** | x402 Protocol (planned) | Inter-agent microservices | Small amounts, automated, frequent calls, streaming payment |
+
+**Why Two Protocols?**
+- User payments need **security + oversight** (escrow + 5-minute human-in-the-loop)
+- Agent-to-agent payments need **speed + automation** (micropayments without blocking)
+
+**x402 Integration Plan**
+- Agent A calls Agent B's endpoint
+- x402 payment authorization attached to request
+- Automatic settlement upon successful response
+- Enables "pay-per-use" agent microservices economy
 
 ### Integration with X Layer Ecosystem
 - Uses **OKX Connect** compatible wallet (MetaMask / OKX Wallet)
