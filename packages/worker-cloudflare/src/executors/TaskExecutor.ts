@@ -13,9 +13,7 @@ import { Env } from "../index";
 import { WorkflowService, WorkflowDefinition, WorkflowStepDefinition } from "../services/WorkflowService";
 import { StateManager, TaskState } from "../services/StateManager";
 import { HumanLoopService } from "../services/HumanLoopService";
-import { PriceMonitorAgent } from "../agents/PriceMonitorAgent";
-import { ConditionAgent } from "../agents/ConditionAgent";
-import { TradeExecutorAgent } from "../agents/TradeExecutorAgent";
+import { AIAgent } from "../agents/AIAgent";
 import { CONTRACTS, TASK_MANAGER_ABI } from "../config/contracts";
 import { 
   WorkerError, 
@@ -45,34 +43,36 @@ export class TaskExecutor {
   private workflowService: WorkflowService;
   private stateManager: StateManager;
   private humanLoopService: HumanLoopService;
-  private provider: ethers.JsonRpcProvider;
-  private wallet: ethers.Wallet;
-  private taskManager: ethers.Contract;
-  
-  // Agent registry
-  private agents: Map<string, any>;
+  private aiAgent: AIAgent;
+
+  // Lazy-initialized blockchain resources (only when needed for tx signing)
+  private _provider: ethers.JsonRpcProvider | null = null;
+  private _wallet: ethers.Wallet | null = null;
+  private _taskManager: ethers.Contract | null = null;
 
   constructor(private env: Env) {
-    // Initialize services
     this.workflowService = new WorkflowService(env);
     this.stateManager = new StateManager(env);
     this.humanLoopService = new HumanLoopService(env, this.stateManager);
-    
-    // Initialize blockchain connection
-    this.provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
-    this.wallet = new ethers.Wallet(env.PRIVATE_KEY, this.provider);
-    this.taskManager = new ethers.Contract(
-      CONTRACTS.taskManager,
-      TASK_MANAGER_ABI,
-      this.wallet
-    );
-    
-    // Initialize agents
-    this.agents = new Map([
-      ["price-monitor", new PriceMonitorAgent(env)],
-      ["condition-eval", new ConditionAgent(env)],
-      ["trade-executor", new TradeExecutorAgent(env)],
-    ]);
+    this.aiAgent = new AIAgent(env);
+  }
+
+  /** Initialize blockchain connection lazily (only when signing txs) */
+  private initBlockchain() {
+    if (!this._provider) {
+      this._provider = new ethers.JsonRpcProvider(this.env.XLAYER_RPC_URL);
+      this._wallet = new ethers.Wallet(this.env.PRIVATE_KEY, this._provider);
+      this._taskManager = new ethers.Contract(
+        CONTRACTS.taskManager,
+        TASK_MANAGER_ABI,
+        this._wallet
+      );
+    }
+    return {
+      provider: this._provider,
+      wallet: this._wallet!,
+      taskManager: this._taskManager!,
+    };
   }
 
   /**
@@ -217,21 +217,17 @@ export class TaskExecutor {
     await this.stateManager.startStep(taskId, step.id);
 
     try {
-      // Get agent
-      const agent = this.agents.get(step.agentId);
-      if (!agent) {
-        throw new AgentExecutionError(`Unknown agent: ${step.agentId}`, step.id, step.agentId, false);
-      }
-
       // Merge step config with variables from previous steps
       const config = this.resolveConfig(step.config, context.variables);
 
-      // Execute agent with retry
+      // Execute via AI Agent (LLM-powered, replaces hardcoded agents)
       const agentResult = await withRetry(
-        () => agent.execute(config, Object.values(context.variables)),
+        () => this.aiAgent.execute(step.agentId, config, Object.values(context.variables) as Record<string, unknown>[]),
         (error) => isRetryableError(error) && !(error instanceof AgentExecutionError && !error.retryable),
         { maxRetries: 2, baseDelay: 1000 }
       );
+
+      console.log(`[TaskExecutor] AI Agent tools used: ${agentResult.toolsUsed?.join(", ") || "none"}`);
 
       const executionTime = Date.now() - startTime;
 
@@ -392,7 +388,8 @@ export class TaskExecutor {
       : ethers.ZeroHash;
 
     await withContractRetry(async () => {
-      const tx = await this.taskManager.recordStepCompletion(
+      const { taskManager } = this.initBlockchain();
+      const tx = await taskManager.recordStepCompletion(
         taskId,
         ethers.keccak256(ethers.toUtf8Bytes(stepId)),
         success ? 1 : 2, // 1 = Success, 2 = Failed

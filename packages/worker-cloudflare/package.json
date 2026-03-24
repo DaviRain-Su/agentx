@@ -11,7 +11,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@gradience/shared-orchestrator": "workspace:*",
+    "@gradience/shared-orchestrator": "file:../shared-orchestrator",
     "ethers": "^6.11.0"
   },
   "devDependencies": {

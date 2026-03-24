@@ -10,13 +10,17 @@ XLAYER_CHAIN_ID = "195"
 # KV Namespace for state management
 [[kv_namespaces]]
 binding = "GRADIENCE_KV"
-id = "your_kv_namespace_id"
+id = "bab4e5fbd4eb474186d8466929541b21"
 
 # Secrets (use wrangler secret put)
 # - PRIVATE_KEY (worker wallet)
 # - COINGECKO_API_KEY (optional)
 # - XURL_API_KEY (optional)
 
+# Cloudflare Workers AI
+[ai]
+binding = "AI"
+
 # Scheduled task to poll for new events
-[[triggers]]
+[triggers]
 crons = ["*/1 * * * *"]  # Every minute

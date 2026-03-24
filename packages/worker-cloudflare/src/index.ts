@@ -20,15 +20,18 @@ export interface Env {
   PRIVATE_KEY: string;
   XLAYER_RPC_URL: string;
   XLAYER_CHAIN_ID?: string;
-  
+
   // External APIs
   COINGECKO_API_KEY?: string;
   XURL_API_KEY?: string;
   XURL_ENDPOINT?: string;
-  
+
   // Cloudflare KV
   GRADIENCE_KV: KVNamespace;
-  
+
+  // Cloudflare Workers AI
+  AI: Ai;
+
   // Feature flags
   DEMO_MODE?: string; // "true" to enable auto-approval
 }
