@@ -1,0 +1,16 @@
+{
+  "name": "@gradience/xlayer-contracts",
+  "version": "0.1.0",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network xlayer-testnet",
+    "verify": "hardhat verify --network xlayer-testnet",
+    "create-wallet": "node script/create-wallet.js",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "dotenv": "^16.4.0"
+  }
+}

@@ -1,0 +1,22 @@
+name = "gradience-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Environment variables (set via wrangler secret)
+[vars]
+XLAYER_RPC_URL = "https://xlayertestrpc.okx.com"
+XLAYER_CHAIN_ID = "195"
+
+# KV Namespace for state management
+[[kv_namespaces]]
+binding = "GRADIENCE_KV"
+id = "your_kv_namespace_id"
+
+# Secrets (use wrangler secret put)
+# - PRIVATE_KEY (worker wallet)
+# - COINGECKO_API_KEY (optional)
+# - XURL_API_KEY (optional)
+
+# Scheduled task to poll for new events
+[[triggers]]
+crons = ["*/1 * * * *"]  # Every minute

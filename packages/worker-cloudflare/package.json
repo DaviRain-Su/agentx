@@ -1,0 +1,23 @@
+{
+  "name": "@gradience/worker-cloudflare",
+  "version": "0.1.0",
+  "description": "Gradience Agent Worker on Cloudflare",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "esbuild src/index.ts --bundle --platform=neutral --target=es2022 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@gradience/shared-orchestrator": "workspace:*",
+    "ethers": "^6.11.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.22.0"
+  }
+}

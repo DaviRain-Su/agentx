@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+cache/
+**/out/
+**/cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Cloudflare
+.wrangler/
+
+# Local pi/skills
+.pi/
+
+# Foundry
+broadcast/
+lib/
+
+# Misc
+*.tsbuildinfo
