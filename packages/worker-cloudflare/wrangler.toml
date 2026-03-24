@@ -15,6 +15,7 @@ id = "bab4e5fbd4eb474186d8466929541b21"
 
 # Secrets (use wrangler secret put)
 # - PRIVATE_KEY (worker wallet for signing txs)
+# - ANTHROPIC_API_KEY (required for pi-agent-core Agent class)
 # - COINGECKO_API_KEY (optional)
 
 # Cloudflare Workers AI

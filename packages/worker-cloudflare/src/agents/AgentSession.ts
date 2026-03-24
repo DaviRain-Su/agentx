@@ -1,56 +1,347 @@
 /**
- * AgentSession - Durable Object for persistent, isolated AI agent sessions
+ * AgentSession - Durable Object powered by pi-agent-core
  *
- * Each session is bound to:
- * - A verified Gradience task ID (on-chain proof of access)
- * - A wallet address (authenticated via signature)
+ * Uses @mariozechner/pi-agent-core's Agent class (real multi-turn tool calling loop)
+ * with SQLite-backed file storage following the pi-worker SqliteTextFileStore pattern.
  *
- * Uses SQLite (via Durable Objects storage.sql) for message persistence.
- * Supports WebSocket for real-time streaming.
+ * Reference: https://github.com/qaml-ai/pi-worker
+ *
+ * Access is gated: caller must prove ownership of an active Gradience task
+ * before this DO is reachable (enforced in the main Worker).
  */
 
+import { Agent, type AgentMessage } from "@mariozechner/pi-agent-core";
+import { getModel } from "@mariozechner/pi-ai";
+import { Type } from "@sinclair/typebox";
 import { Env } from "../index";
 
-const SYSTEM_PROMPT = `You are Gradience Agent — an AI operating within a decentralized agent orchestration network built on X Layer blockchain.
+// ─── SqliteTextFileStore ──────────────────────────────────────────────────────
+// Implements the pi-worker SqliteTextFileStore interface backed by DO's SQLite.
+// See: https://github.com/qaml-ai/pi-worker/blob/main/packages/pi-worker/src/sqlite-tools.ts
 
-You help users with:
-- DeFi task automation: price monitoring, condition evaluation, trade preparation
-- Workflow creation and management on the Gradience network
-- Smart contract interactions on X Layer (OKX's EVM L2)
-- Market analysis: real-time crypto price data, trends
-- Understanding on-chain task execution status and results
+class DOFileStore {
+  constructor(private readonly sql: SqlStorage) {
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS files (
+        path    TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        updated INTEGER NOT NULL
+      );
+    `);
+  }
 
-When users ask about token prices, note that the Gradience price-monitor workflow agent fetches live data from Binance.
-When discussing trades, always note that human approval is required before any transaction is signed.
-Be concise, technically precise, and helpful. Use markdown formatting for clarity.`;
+  async get(path: string): Promise<string | undefined> {
+    const rows = [...this.sql.exec("SELECT content FROM files WHERE path = ?", path)];
+    return rows.length > 0 ? (rows[0].content as string) : undefined;
+  }
+
+  async put(path: string, content: string): Promise<void> {
+    this.sql.exec(
+      "INSERT OR REPLACE INTO files (path, content, updated) VALUES (?, ?, ?)",
+      path,
+      content,
+      Date.now()
+    );
+  }
+
+  async list(): Promise<string[]> {
+    const rows = [...this.sql.exec("SELECT path FROM files ORDER BY path")];
+    return rows.map((r) => r.path as string);
+  }
+}
+
+// ─── File Tools (pi-worker SqliteTextFileStore pattern) ───────────────────────
+// Same tool interface as pi-worker's createSqliteTools():
+//   { name, label, description, parameters (TypeBox), execute }
+// Reference: github.com/qaml-ai/pi-worker/packages/pi-worker/src/sqlite-tools.ts
+
+function createFileTools(store: DOFileStore) {
+  const readTool = {
+    name: "read" as const,
+    label: "Read File",
+    description: "Read a file from the agent's workspace. Output is line-limited; use offset/limit for large files.",
+    parameters: Type.Object({
+      path: Type.String({ description: "File path to read" }),
+      offset: Type.Optional(Type.Number({ description: "Start line (1-indexed)" })),
+      limit: Type.Optional(Type.Number({ description: "Max lines to return (default 500)" })),
+    }),
+    execute: async (
+      _id: string,
+      { path, offset, limit }: { path: string; offset?: number; limit?: number }
+    ) => {
+      const content = await store.get(sanitizePath(path));
+      if (content === undefined) throw new Error(`File not found: ${path}`);
+
+      const lines = content.split("\n");
+      const total = lines.length;
+      const start = offset ? Math.max(0, offset - 1) : 0;
+      if (start >= total) throw new Error(`Offset ${offset} beyond file end (${total} lines)`);
+      const end = Math.min(start + (limit ?? 500), total);
+      let out = lines.slice(start, end).join("\n");
+      if (end < total) out += `\n\n[Lines ${start + 1}-${end} of ${total}. Use offset=${end + 1} for more.]`;
+
+      return { content: [{ type: "text" as const, text: out }], details: {} };
+    },
+  };
+
+  const writeTool = {
+    name: "write" as const,
+    label: "Write File",
+    description: "Write content to a file in the agent's workspace. Creates or overwrites.",
+    parameters: Type.Object({
+      path: Type.String({ description: "File path to write" }),
+      content: Type.String({ description: "Content to write" }),
+    }),
+    execute: async (_id: string, { path, content }: { path: string; content: string }) => {
+      await store.put(sanitizePath(path), content);
+      return {
+        content: [{ type: "text" as const, text: `Wrote ${content.length} bytes to ${path}` }],
+        details: {},
+      };
+    },
+  };
+
+  const lsTool = {
+    name: "ls" as const,
+    label: "List Files",
+    description: "List files in the agent's workspace.",
+    parameters: Type.Object({
+      path: Type.Optional(Type.String({ description: "Directory to list (default: root)" })),
+    }),
+    execute: async (_id: string, { path }: { path?: string }) => {
+      const all = await store.list();
+      const prefix = path ? sanitizePath(path).replace(/\/?$/, "/") : "";
+      const entries = new Set<string>();
+      for (const key of all) {
+        if (!key.startsWith(prefix)) continue;
+        const rest = key.slice(prefix.length);
+        if (!rest) continue;
+        const slash = rest.indexOf("/");
+        entries.add(slash === -1 ? rest : rest.slice(0, slash + 1));
+      }
+      const sorted = [...entries].sort();
+      const text = sorted.length > 0 ? sorted.join("\n") : "(empty)";
+      return { content: [{ type: "text" as const, text }], details: {} };
+    },
+  };
+
+  return [readTool, writeTool, lsTool];
+}
+
+function sanitizePath(p: string): string {
+  return p.replace(/^\/+/, "").replace(/\.\./g, "").replace(/\/\/+/g, "/");
+}
+
+// ─── Gradience Domain Tools ────────────────────────────────────────────────────
+// These extend the agent's capabilities with real blockchain/DeFi data.
+
+function createPriceTool() {
+  return {
+    name: "fetch_price" as const,
+    label: "Fetch Token Price",
+    description:
+      "Fetch the live USD price of a cryptocurrency from Binance. Returns the current market price.",
+    parameters: Type.Object({
+      token: Type.String({
+        description:
+          "Token symbol or CoinGecko ID (e.g. 'ethereum', 'bitcoin', 'solana', 'ETH', 'BTC')",
+      }),
+    }),
+    execute: async (_id: string, { token }: { token: string }) => {
+      const TICKER_MAP: Record<string, string> = {
+        ethereum: "ETH",
+        bitcoin: "BTC",
+        solana: "SOL",
+        binancecoin: "BNB",
+        "matic-network": "MATIC",
+        avalanche: "AVAX",
+        polkadot: "DOT",
+        chainlink: "LINK",
+      };
+      const ticker = TICKER_MAP[token.toLowerCase()] ?? token.toUpperCase();
+      const symbol = `${ticker}USDT`;
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+      if (!res.ok) throw new Error(`Binance error ${res.status} for ${symbol}`);
+      const data = (await res.json()) as { price: string };
+      const price = parseFloat(data.price);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `${ticker} = $${price.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD (Binance, live)`,
+          },
+        ],
+        details: { token: ticker, price, source: "binance", timestamp: Date.now() },
+      };
+    },
+  };
+}
+
+function createConditionTool() {
+  return {
+    name: "evaluate_condition" as const,
+    label: "Evaluate Condition",
+    description: "Evaluate whether a numeric value satisfies a condition (e.g. price > 3000).",
+    parameters: Type.Object({
+      value: Type.Number({ description: "The numeric value to check" }),
+      operator: Type.Union(
+        [
+          Type.Literal("<"),
+          Type.Literal(">"),
+          Type.Literal("<="),
+          Type.Literal(">="),
+          Type.Literal("=="),
+        ],
+        { description: "Comparison operator" }
+      ),
+      threshold: Type.Number({ description: "The threshold to compare against" }),
+    }),
+    execute: async (
+      _id: string,
+      { value, operator, threshold }: { value: number; operator: string; threshold: number }
+    ) => {
+      const ops: Record<string, (a: number, b: number) => boolean> = {
+        "<": (a, b) => a < b,
+        ">": (a, b) => a > b,
+        "<=": (a, b) => a <= b,
+        ">=": (a, b) => a >= b,
+        "==": (a, b) => a === b,
+      };
+      const fn = ops[operator];
+      if (!fn) throw new Error(`Unknown operator: ${operator}`);
+      const result = fn(value, threshold);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `${value} ${operator} ${threshold} → **${result ? "TRUE ✓" : "FALSE ✗"}**`,
+          },
+        ],
+        details: { value, operator, threshold, result },
+      };
+    },
+  };
+}
+
+function createPrepareTradeTool() {
+  return {
+    name: "prepare_trade" as const,
+    label: "Prepare Trade",
+    description:
+      "Prepare DEX trade parameters for a token swap on X Layer. Always requires human approval before signing.",
+    parameters: Type.Object({
+      action: Type.Union([Type.Literal("buy"), Type.Literal("sell")], {
+        description: "Trade direction",
+      }),
+      token: Type.String({ description: "Token symbol (e.g. 'ETH', 'BTC')" }),
+      amount: Type.String({ description: "Amount to trade (e.g. '0.1')" }),
+      price: Type.Optional(Type.Number({ description: "Current price in USD" })),
+    }),
+    execute: async (
+      _id: string,
+      {
+        action,
+        token,
+        amount,
+        price,
+      }: { action: string; token: string; amount: string; price?: number }
+    ) => {
+      const estimatedValue = price ? parseFloat(amount) * price : 0;
+      const text = [
+        `**Trade prepared** (awaiting human approval)`,
+        `Action: ${action.toUpperCase()} ${amount} ${token}`,
+        price ? `Est. value: $${estimatedValue.toFixed(2)} USD` : "",
+        `⚠️ This requires your wallet signature before execution.`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      return {
+        content: [{ type: "text" as const, text }],
+        details: {
+          executed: false,
+          requiresSignature: true,
+          action,
+          token,
+          amount,
+          estimatedPrice: price ?? 0,
+          estimatedValue,
+        },
+      };
+    },
+  };
+}
+
+// ─── Message Persistence ──────────────────────────────────────────────────────
+
+function serializeMessages(messages: AgentMessage[]): string {
+  return JSON.stringify(messages);
+}
+
+function deserializeMessages(raw: string): AgentMessage[] {
+  try {
+    return JSON.parse(raw) as AgentMessage[];
+  } catch {
+    return [];
+  }
+}
+
+// ─── AgentSession Durable Object ─────────────────────────────────────────────
 
 export class AgentSession {
   private readonly sql: SqlStorage;
+  private agent: Agent | null = null;
 
   constructor(
     private readonly state: DurableObjectState,
     private readonly env: Env
   ) {
     this.sql = state.storage.sql;
-    // Initialize tables on first access
+    // Initialize tables
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        role TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at INTEGER NOT NULL
+        id INTEGER PRIMARY KEY,
+        data TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS session_meta (
-        key TEXT PRIMARY KEY,
+        key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
     `);
   }
 
+  // Lazily create (or restore) the Agent
+  private getAgent(): Agent {
+    if (this.agent) return this.agent;
+
+    const fileStore = new DOFileStore(this.sql);
+
+    const tools = [
+      ...createFileTools(fileStore),
+      createPriceTool(),
+      createConditionTool(),
+      createPrepareTradeTool(),
+    ];
+
+    this.agent = new Agent({
+      initialState: {
+        systemPrompt: SYSTEM_PROMPT,
+        model: getModel("anthropic", "anthropic/claude-haiku-4.5"),
+        tools,
+        messages: this.loadMessages(),
+      },
+      getApiKey: async (provider: string) => {
+        if (provider === "anthropic") return this.env.ANTHROPIC_API_KEY ?? "";
+        return "";
+      },
+    });
+
+    return this.agent;
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
-    // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders() });
     }
@@ -66,37 +357,44 @@ export class AgentSession {
       return new Response(null, { status: 101, webSocket: client });
     }
 
-    // HTTP chat (fallback for clients that don't support WebSocket)
+    // HTTP chat (fallback)
     if (url.pathname === "/chat" && request.method === "POST") {
       const { message } = (await request.json()) as { message: string };
-      const response = await this.processMessage(message);
-      return cors(Response.json({ response }));
+      const reply = await this.runAgent(message);
+      return cors(Response.json({ response: reply }));
     }
 
-    // Get conversation history
+    // History
     if (url.pathname === "/history" && request.method === "GET") {
-      const history = this.getHistory();
-      return cors(Response.json({ history }));
+      const messages = this.loadMessages();
+      const simplified = messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          role: m.role,
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+          timestamp: (m as any).timestamp ?? 0,
+        }));
+      return cors(Response.json({ history: simplified }));
     }
 
-    // Clear history
+    // Clear
     if (url.pathname === "/clear" && request.method === "POST") {
       this.sql.exec("DELETE FROM messages");
+      this.agent?.clearMessages();
       return cors(Response.json({ ok: true }));
     }
 
-    // Session info
+    // Info
     if (url.pathname === "/info" && request.method === "GET") {
       const taskId = this.getMeta("taskId");
       const address = this.getMeta("address");
-      const messageCount = [...this.sql.exec("SELECT COUNT(*) as cnt FROM messages")][0]?.cnt ?? 0;
-      return cors(Response.json({ taskId, address, messageCount }));
+      return cors(Response.json({ taskId, address, messageCount: this.loadMessages().length }));
     }
 
     return new Response("Not found", { status: 404 });
   }
 
-  // ─── WebSocket Handlers ────────────────────────────────────────────────────
+  // ─── WebSocket Handlers ─────────────────────────────────────────────────
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== "string") return;
@@ -111,110 +409,119 @@ export class AgentSession {
 
     switch (data.type) {
       case "message":
-        if (data.content) {
-          await this.streamToWebSocket(ws, data.content);
-        }
+        if (data.content) await this.streamAgentToWebSocket(ws, data.content);
         break;
       case "ping":
         ws.send(JSON.stringify({ type: "pong" }));
         break;
       case "clear":
         this.sql.exec("DELETE FROM messages");
+        this.agent?.clearMessages();
         ws.send(JSON.stringify({ type: "cleared" }));
         break;
-      default:
-        ws.send(JSON.stringify({ type: "error", content: `Unknown message type: ${data.type}` }));
     }
   }
 
-  async webSocketClose(_ws: WebSocket, _code: number, _reason: string): Promise<void> {
-    // Session persists in SQLite even after WebSocket closes
-  }
-
+  async webSocketClose(_ws: WebSocket): Promise<void> {}
   async webSocketError(_ws: WebSocket, error: unknown): Promise<void> {
-    console.error("[AgentSession] WebSocket error:", error);
+    console.error("[AgentSession] WS error:", error);
   }
 
-  // ─── Agent Logic ──────────────────────────────────────────────────────────
+  // ─── Agent Execution ────────────────────────────────────────────────────
 
-  private async processMessage(userMessage: string): Promise<string> {
-    this.saveMessage("user", userMessage);
-    const history = this.buildMessageHistory();
+  /** HTTP path: run the agent and return the final text */
+  private async runAgent(userMessage: string): Promise<string> {
+    const agent = this.getAgent();
+    let finalText = "";
 
-    try {
-      const response = (await this.env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
-        max_tokens: 1000,
-      })) as { response: string };
+    const unsub = agent.subscribe((event) => {
+      if (
+        event.type === "message_update" &&
+        event.assistantMessageEvent.type === "text_delta"
+      ) {
+        finalText += event.assistantMessageEvent.delta;
+      }
+    });
 
-      const reply = response.response?.trim() || "I couldn't process that request.";
-      this.saveMessage("assistant", reply);
-      return reply;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return `Error: ${msg}`;
-    }
+    await agent.prompt(userMessage);
+    unsub();
+
+    // Persist updated messages
+    this.saveMessages(agent.state.messages);
+    return finalText || "Done.";
   }
 
-  private async streamToWebSocket(ws: WebSocket, userMessage: string): Promise<void> {
-    this.saveMessage("user", userMessage);
-    const history = this.buildMessageHistory();
-
+  /** WebSocket path: stream agent events to the client */
+  private async streamAgentToWebSocket(ws: WebSocket, userMessage: string): Promise<void> {
+    const agent = this.getAgent();
     ws.send(JSON.stringify({ type: "start" }));
 
-    try {
-      const response = (await this.env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
-        max_tokens: 1000,
-      })) as { response: string };
+    const unsub = agent.subscribe((event) => {
+      switch (event.type) {
+        case "message_update":
+          if (event.assistantMessageEvent.type === "text_delta") {
+            ws.send(
+              JSON.stringify({ type: "delta", content: event.assistantMessageEvent.delta })
+            );
+          }
+          break;
 
-      const reply = response.response?.trim() || "I couldn't process that request.";
-      this.saveMessage("assistant", reply);
-      ws.send(JSON.stringify({ type: "message", content: reply }));
+        case "tool_execution_start":
+          ws.send(
+            JSON.stringify({
+              type: "tool_start",
+              name: (event as any).toolName ?? (event as any).toolCall?.name,
+            })
+          );
+          break;
+
+        case "tool_execution_end":
+          ws.send(JSON.stringify({ type: "tool_end" }));
+          break;
+
+        case "agent_end":
+          // Save updated conversation to SQLite
+          this.saveMessages(agent.state.messages);
+          ws.send(JSON.stringify({ type: "end" }));
+          break;
+      }
+    });
+
+    try {
+      await agent.prompt(userMessage);
     } catch (err) {
-      ws.send(JSON.stringify({
-        type: "error",
-        content: `Agent error: ${err instanceof Error ? err.message : String(err)}`,
-      }));
-    } finally {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          content: err instanceof Error ? err.message : String(err),
+        })
+      );
       ws.send(JSON.stringify({ type: "end" }));
+    } finally {
+      unsub();
     }
   }
 
-  // ─── Storage Helpers ──────────────────────────────────────────────────────
+  // ─── Message Persistence ────────────────────────────────────────────────
 
-  private buildMessageHistory(): Array<{ role: "user" | "assistant"; content: string }> {
-    // Keep last 20 messages to stay within context limits
-    const rows = this.getHistory().slice(-20);
-    return rows.map((r) => ({
-      role: r.role as "user" | "assistant",
-      content: r.content,
-    }));
+  private loadMessages(): AgentMessage[] {
+    const rows = [...this.sql.exec("SELECT data FROM messages WHERE id = 1")];
+    if (rows.length === 0) return [];
+    return deserializeMessages(rows[0].data as string);
   }
 
-  private getHistory(): Array<{ role: string; content: string; created_at: number }> {
-    const cursor = this.sql.exec(
-      "SELECT role, content, created_at FROM messages ORDER BY id"
-    );
-    return [...cursor].map((row) => ({
-      role: row.role as string,
-      content: row.content as string,
-      created_at: row.created_at as number,
-    }));
-  }
-
-  private saveMessage(role: string, content: string): void {
+  private saveMessages(messages: AgentMessage[]): void {
+    const data = serializeMessages(messages);
     this.sql.exec(
-      "INSERT INTO messages (role, content, created_at) VALUES (?, ?, ?)",
-      role,
-      content,
-      Date.now()
+      "INSERT OR REPLACE INTO messages (id, data) VALUES (1, ?)",
+      data
     );
   }
 
-  private getMeta(key: string): string | null {
-    const cursor = this.sql.exec("SELECT value FROM session_meta WHERE key = ?", key);
-    const rows = [...cursor];
+  // ─── Session Metadata ───────────────────────────────────────────────────
+
+  getMeta(key: string): string | null {
+    const rows = [...this.sql.exec("SELECT value FROM session_meta WHERE key = ?", key)];
     return rows.length > 0 ? (rows[0].value as string) : null;
   }
 
@@ -226,6 +533,23 @@ export class AgentSession {
     );
   }
 }
+
+// ─── System Prompt ────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are Gradience Agent — an autonomous AI operating within a decentralized agent orchestration network on X Layer blockchain.
+
+You have access to these tools:
+- **fetch_price**: Get live cryptocurrency prices from Binance
+- **evaluate_condition**: Check if a value meets a condition (e.g., price > threshold)
+- **prepare_trade**: Prepare a DEX trade for user approval
+- **read / write / ls**: Persistent file workspace — save research, calculations, plans
+
+You can autonomously call multiple tools in sequence to complete tasks. For example:
+1. Fetch ETH price
+2. Evaluate if it meets a buy condition
+3. If yes, prepare the trade
+
+Always be transparent about what tools you're calling and why. For trade preparation, always note that human signature is required. Be concise and technically precise.`;
 
 // ─── CORS Helpers ─────────────────────────────────────────────────────────────
 

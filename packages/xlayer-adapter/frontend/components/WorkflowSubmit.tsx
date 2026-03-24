@@ -99,6 +99,8 @@ export function WorkflowSubmit({ onClose }: WorkflowSubmitProps) {
         }
       }
       setTaskId(extractedTaskId);
+      // Persist for Agent Terminal auto-fill
+      localStorage.setItem("lastTaskId", extractedTaskId);
       
     } catch (err: any) {
       console.error("Submit failed:", err);

@@ -1,0 +1,22 @@
+{
+  "name": "@gradience/node-local",
+  "version": "0.1.0",
+  "description": "Local execution node for Gradience decentralized agent network",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@gradience/shared-orchestrator": "workspace:*",
+    "ethers": "^6.13.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}

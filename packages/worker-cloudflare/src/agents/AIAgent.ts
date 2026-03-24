@@ -19,7 +19,7 @@ export interface AIAgentResult {
 }
 
 // Tool definitions for the LLM
-const TOOLS: AiTextGenerationToolInput[] = [
+const TOOLS: any[] = [
   {
     name: "fetch_token_price",
     description:
@@ -203,7 +203,7 @@ Result: ${JSON.stringify(toolResult)}
 
 Provide a brief 1-2 sentence analysis of this result and what it means for the workflow.`;
 
-      const response = await this.env.AI.run(this.MODEL, {
+      const response = await this.env.AI.run(this.MODEL as any, {
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });

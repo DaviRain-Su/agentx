@@ -97,7 +97,7 @@ export class PriceMonitorAgent {
           throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const data = await response.json() as Record<string, { usd: number }>;
         const price = data[token.toLowerCase()]?.usd;
         
         if (price === undefined) {
@@ -129,7 +129,7 @@ export class PriceMonitorAgent {
           throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const data = await response.json() as { price: string };
         const price = parseFloat(data.price);
         
         if (isNaN(price)) {

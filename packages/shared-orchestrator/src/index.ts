@@ -21,3 +21,10 @@ export { HumanInLoopManager, ConfirmationManager } from './human-in-loop/Confirm
 
 // State
 export { StateManager, XurlStateManager } from './state/StateManager';
+
+// Runtime
+export * from './runtime/types';
+export { CloudflareRuntime } from './runtime/CloudflareRuntime';
+export { NodeRuntime } from './runtime/NodeRuntime';
+export { RuntimeFactory } from './runtime/RuntimeFactory';
+export { ExecutionNode, NodeCapability, Task, TaskRequirements } from './runtime/ExecutionNode';

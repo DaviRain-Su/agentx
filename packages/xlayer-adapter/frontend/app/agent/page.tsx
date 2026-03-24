@@ -97,27 +97,64 @@ export default function AgentPage() {
       setConnStatus("connected");
     };
 
+    let streamBuffer = "";
+    let streamMsgId = "";
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as {
           type: string;
           content?: string;
+          name?: string;
         };
 
         switch (data.type) {
+          case "start":
+            setIsThinking(true);
+            streamBuffer = "";
+            streamMsgId = crypto.randomUUID();
+            // Add empty assistant message that will be updated
+            setMessages((prev) => [
+              ...prev,
+              { id: streamMsgId, role: "assistant" as const, content: "", timestamp: new Date() },
+            ]);
+            break;
+
+          case "delta":
+            // Stream text into the existing assistant message
+            streamBuffer += data.content || "";
+            setMessages((prev) =>
+              prev.map((m) => (m.id === streamMsgId ? { ...m, content: streamBuffer } : m))
+            );
+            break;
+
+          case "tool_start":
+            addSystemMessage(`⚙ Calling tool: ${data.name}`);
+            break;
+
+          case "tool_end":
+            // tool done, continue
+            break;
+
+          case "end":
+            setIsThinking(false);
+            streamBuffer = "";
+            streamMsgId = "";
+            break;
+
           case "message":
+            // HTTP fallback path
             setIsThinking(false);
             addMessage("assistant", data.content || "");
             break;
+
           case "error":
             setIsThinking(false);
             addSystemMessage(`Error: ${data.content}`);
             break;
-          case "start":
-            setIsThinking(true);
-            break;
-          case "end":
-            setIsThinking(false);
+
+          case "cleared":
+            setMessages([]);
             break;
         }
       } catch {
