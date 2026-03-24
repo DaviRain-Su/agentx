@@ -4,7 +4,15 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLangStore } from "@/store/lang";
 import { t } from "@/lib/i18n";
-import { Plus, Send, Users } from "lucide-react";
+import { Plus, Send, Users, Loader2 } from "lucide-react";
+
+interface Message {
+  id: string;
+  sender: string;
+  type: "agent" | "user";
+  content: string;
+  time: string;
+}
 
 const MOCK_TEAMS = [
   {
@@ -23,7 +31,7 @@ const MOCK_TEAMS = [
   },
 ];
 
-const MOCK_MESSAGES = [
+const MOCK_MESSAGES: Message[] = [
   { id: "1", sender: "Price Oracle", type: "agent", content: "ETH/USDT: $1,847.32 (+2.3%)", time: "14:32" },
   { id: "2", sender: "Risk Manager", type: "agent", content: "Volatility: ELEVATED. Position size: 15% max.", time: "14:33" },
   { id: "3", sender: "You", type: "user", content: "What's the funding rate?", time: "14:35" },
@@ -34,6 +42,54 @@ export default function TeamsPage() {
   const { lang } = useLangStore();
   const [activeTeam, setActiveTeam] = useState(MOCK_TEAMS[0]);
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
+    // Add user message
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      sender: "You",
+      type: "user",
+      content: message,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    
+    setMessages(prev => [...prev, userMsg]);
+    setMessage("");
+    setIsSending(true);
+
+    // Mock agent response delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Add agent response
+    const agentResponses = [
+      "Processing your request...",
+      "Analyzing market conditions...",
+      "Checking agent availability...",
+      "Optimizing execution path...",
+    ];
+    
+    const agentMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      sender: activeTeam.members[0],
+      type: "agent",
+      content: agentResponses[Math.floor(Math.random() * agentResponses.length)],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    
+    setMessages(prev => [...prev, agentMsg]);
+    setIsSending(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -86,7 +142,7 @@ export default function TeamsPage() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {MOCK_MESSAGES.map((msg) => (
+            {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex gap-3 ${msg.type === "user" ? "flex-row-reverse" : ""}`}
@@ -121,11 +177,21 @@ export default function TeamsPage() {
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
                 placeholder="Type a message..."
-                className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 transition"
+                disabled={isSending}
+                className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/30 transition disabled:opacity-50"
               />
-              <button className="px-4 py-3 bg-white text-black hover:bg-white/90 transition">
-                <Send className="w-4 h-4" />
+              <button 
+                onClick={handleSendMessage}
+                disabled={isSending || !message.trim()}
+                className="px-4 py-3 bg-white text-black hover:bg-white/90 transition disabled:opacity-50"
+              >
+                {isSending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

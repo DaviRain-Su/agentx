@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLangStore } from "@/store/lang";
-import { Search, Plus, Star, Zap } from "lucide-react";
+import { Search, Plus, Star, Zap, Loader2, CheckCircle } from "lucide-react";
+import { mockService } from "@/lib/mockService";
 
 const MOCK_AGENTS = [
   { id: "1", name: "Aethelgard-9", subtitle: "Advanced Liquidity Orchestrator", description: "Cross-chain yield arbitrage and risk mitigation strategies with 99.98% efficiency.", rating: 4.9, downloads: 1284, price: 0.1, category: "DeFi", featured: true },
@@ -16,10 +17,30 @@ const MOCK_AGENTS = [
 
 const CATEGORIES = ["All", "DeFi", "AI", "Security", "Analytics", "Trading"];
 
+type DeployState = "idle" | "deploying" | "success";
+
 export default function MarketPage() {
   const { lang } = useLangStore();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deployState, setDeployState] = useState<DeployState>("idle");
+  const [deployedAgent, setDeployedAgent] = useState<string | null>(null);
+
+  const handleDeploy = async (agentName: string) => {
+    setDeployState("deploying");
+    setDeployedAgent(agentName);
+    
+    // Mock deployment delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    setDeployState("success");
+    
+    // Reset after showing success
+    setTimeout(() => {
+      setDeployState("idle");
+      setDeployedAgent(null);
+    }, 3000);
+  };
 
   const filteredAgents = MOCK_AGENTS.filter((agent) => {
     const matchesCategory = activeCategory === "All" || agent.category === activeCategory;
@@ -58,9 +79,27 @@ export default function MarketPage() {
                 <h2 className="text-5xl font-light text-white mb-4">{featuredAgent.name}</h2>
                 <p className="text-white/50 mb-6 max-w-md">{featuredAgent.description}</p>
                 <div className="flex items-center gap-6">
-                  <button className="px-6 py-3 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    Deploy Agent
+                  <button 
+                    onClick={() => handleDeploy(featuredAgent.name)}
+                    disabled={deployState === "deploying"}
+                    className="px-6 py-3 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {deployState === "deploying" && deployedAgent === featuredAgent.name ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Deploying...
+                      </>
+                    ) : deployState === "success" && deployedAgent === featuredAgent.name ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Deployed!
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        Deploy Agent
+                      </>
+                    )}
                   </button>
                   <div>
                     <span className="text-xs text-white/40 uppercase tracking-widest block">Efficiency</span>
@@ -103,6 +142,17 @@ export default function MarketPage() {
             ))}
           </div>
         </div>
+
+        {/* Deploy Success Toast */}
+        {deployState === "success" && (
+          <div className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-4">
+            <CheckCircle className="w-6 h-6" />
+            <div>
+              <p className="font-medium">Agent Deployed Successfully!</p>
+              <p className="text-sm text-white/80">{deployedAgent} is now active</p>
+            </div>
+          </div>
+        )}
 
         {/* Agent Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
