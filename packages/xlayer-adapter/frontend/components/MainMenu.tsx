@@ -2,11 +2,11 @@
 
 import { useWeb3 } from "./Web3Provider";
 import { useLangStore } from "@/store/lang";
-import { t } from "@/lib/i18n";
+import { t, translations } from "@/lib/i18n";
 import Link from "next/link";
 import { Workflow, ShoppingCart, Users, ClipboardList, LogOut, Globe } from "lucide-react";
 
-const MENU_ITEMS = [
+const MENU_ITEMS: { id: string; label: "navWorkflows" | "navMarket" | "navTeams" | "navTasks"; icon: typeof Workflow; href: string; desc: string }[] = [
   { id: "workflows", label: "navWorkflows", icon: Workflow, href: "/workflows", desc: "Build & Deploy" },
   { id: "market", label: "navMarket", icon: ShoppingCart, href: "/market", desc: "Browse & Publish" },
   { id: "teams", label: "navTeams", icon: Users, href: "/teams", desc: "Create Squads" },
@@ -70,7 +70,7 @@ export function MainMenu() {
                       <Icon className="w-10 h-10" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold mb-2">{t(item.label, lang)}</h3>
+                      <h3 className="text-2xl font-bold mb-2">{t(item.label as keyof typeof translations.en, lang)}</h3>
                       <p className="text-sm dim mb-4">{item.desc}</p>
                       <div className="text-[var(--phosphor-main)] text-sm">[ ACCESS MODULE → ]</div>
                     </div>

@@ -11,7 +11,7 @@ interface ConfirmationRequest {
     agentName: string;
     estimatedCost: number;
     conditionResult?: string;
-    input?: unknown;
+    input?: Record<string, unknown> | string | number | boolean | null;
   };
   timeoutAt: number;
 }
@@ -137,7 +137,7 @@ export function HumanInLoopModal({
               <div className="pt-2 border-t">
                 <span className="text-gray-600 text-sm">Input Data:</span>
                 <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                  {JSON.stringify(request.details.input, null, 2)}
+                  {JSON.stringify(request.details.input as Record<string, unknown>, null, 2)}
                 </pre>
               </div>
             )}

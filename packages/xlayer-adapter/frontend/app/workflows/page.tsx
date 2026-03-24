@@ -154,8 +154,7 @@ export default function WorkflowsPage() {
                 {/* Steps Preview */}
                 <div className="space-y-2 mb-6">
                   {workflow.steps.map((step, index) => (
-                    <div key={step.id} className="flex items-center gap-3 text-sm"
-003e
+                    <div key={step.id} className="flex items-center gap-3 text-sm">
                       <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-xs text-[#a3aac4]">
                         {index + 1}
                       </div>

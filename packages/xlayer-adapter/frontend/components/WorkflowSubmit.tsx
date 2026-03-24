@@ -6,7 +6,11 @@ import { useWorkflowStore } from "@/store/workflow";
 import { ethers } from "ethers";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
-export function WorkflowSubmit() {
+interface WorkflowSubmitProps {
+  onClose?: () => void;
+}
+
+export function WorkflowSubmit({ onClose }: WorkflowSubmitProps) {
   const { taskManager, usdc, isConnected, address } = useWeb3();
   const { steps, executionMode } = useWorkflowStore();
   

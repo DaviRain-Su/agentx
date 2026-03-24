@@ -7,6 +7,7 @@ import { CONTRACTS, TASK_MANAGER_ABI, PAYMENT_HUB_ABI, USDC_ABI } from "@/lib/co
 interface Web3ContextType {
   address: string | null;
   isConnected: boolean;
+  isConnecting: boolean;
   provider: ethers.BrowserProvider | null;
   signer: ethers.JsonRpcSigner | null;
   taskManager: ethers.Contract | null;
@@ -20,6 +21,7 @@ const Web3Context = createContext<Web3ContextType | null>(null);
 
 export function Web3Provider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
   const [taskManager, setTaskManager] = useState<ethers.Contract | null>(null);
@@ -64,17 +66,20 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   };
 
   const connect = async () => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      try {
+    setIsConnecting(true);
+    try {
+      if (typeof window !== "undefined" && (window as any).ethereum) {
         const ethProvider = new ethers.BrowserProvider((window as any).ethereum);
         await ethProvider.send("eth_requestAccounts", []);
         await setupConnection(ethProvider);
-      } catch (error) {
-        console.error("Failed to connect:", error);
-        throw error;
+      } else {
+        throw new Error("No wallet found. Please install MetaMask or OKX Wallet.");
       }
-    } else {
-      throw new Error("No wallet found. Please install MetaMask or OKX Wallet.");
+    } catch (error) {
+      console.error("Failed to connect:", error);
+      throw error;
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -92,6 +97,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       value={{
         address,
         isConnected: !!address,
+        isConnecting,
         provider,
         signer,
         taskManager,

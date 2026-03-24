@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLangStore } from "@/store/lang";
 import { mockService, Task, StepResult, ConfirmationRequest } from "@/lib/mockService";
-import { ClipboardList, ChevronRight, CheckCircle, XCircle, Clock, Loader2, AlertCircle, Play, Check, X } from "lucide-react";
+import { ClipboardList, ChevronRight, CheckCircle, XCircle, Clock, Loader2, AlertCircle, Check, X } from "lucide-react";
 import Link from "next/link";
 
 export default function TasksPage() {
@@ -106,6 +106,11 @@ export default function TasksPage() {
     }
   };
 
+  const getConfirmationDetails = (conf: ConfirmationRequest) => {
+    const details = conf.details as { workflowName: string; stepIndex: number; totalSteps: number };
+    return details;
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
@@ -153,10 +158,10 @@ export default function TasksPage() {
                       <p className="text-[#a3aac4] mb-2">{conf.description}</p>
                       <div className="flex items-center gap-4 text-sm">
                         <span className="text-[#a3aac4]">
-                          {lang === "en" ? "Workflow" : "工作流"}: {conf.details.workflowName}
+                          {lang === "en" ? "Workflow" : "工作流"}: {getConfirmationDetails(conf).workflowName}
                         </span>
                         <span className="text-[#a3aac4]">
-                          {lang === "en" ? "Step" : "步骤"}: {conf.details.stepIndex} / {conf.details.totalSteps}
+                          {lang === "en" ? "Step" : "步骤"}: {getConfirmationDetails(conf).stepIndex} / {getConfirmationDetails(conf).totalSteps}
                         </span>
                       </div>
                     </div>

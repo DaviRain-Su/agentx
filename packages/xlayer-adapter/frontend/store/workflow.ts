@@ -1,8 +1,19 @@
 import { create } from "zustand";
-import { WorkflowDefinition, WorkflowStep } from "@gradience/shared-orchestrator";
+
+// 本地类型定义
+interface WorkflowStep {
+  id: string;
+  agentId: string;
+  name: string;
+  description?: string;
+  config: Record<string, unknown>;
+  dependsOn: string[];
+  humanApproval?: boolean;
+  timeout?: number;
+}
 
 interface WorkflowState {
-  currentWorkflow: WorkflowDefinition | null;
+  currentWorkflow: { id: string; name: string } | null;
   steps: WorkflowStep[];
   executionMode: "sequential" | "parallel" | "conditional";
   addStep: (step: Omit<WorkflowStep, "id">) => void;
