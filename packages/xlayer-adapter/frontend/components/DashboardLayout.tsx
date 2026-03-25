@@ -18,6 +18,7 @@ import {
   Globe,
   Home,
   Zap,
+  BookOpen,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -27,7 +28,7 @@ const NAV_ITEMS = [
   { id: "teams", label: "navTeams", icon: Users, href: "/teams" },
   { id: "tasks", label: "navTasks", icon: ClipboardList, href: "/tasks" },
   { id: "agent", label: "Agent Terminal", icon: Terminal, href: "/agent" },
-  { id: "octo", label: "Octo-Kinetic", icon: Zap, href: "/octo" },
+  { id: "docs", label: "Docs", icon: BookOpen, href: "/docs" },
 ];
 
 interface DashboardLayoutProps {
@@ -159,7 +160,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Icon className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && (
                   <span className="font-medium text-sm">
-                    {item.label === "Home" || item.label === "Agent Terminal" || item.label === "Octo-Kinetic"
+                    {item.label === "Home" || item.label === "Agent Terminal" || item.label === "Docs"
                       ? item.label
                       : t(item.label as keyof typeof translations.en, lang)}
                   </span>
