@@ -23,7 +23,7 @@ const DOCS_NAV = [
     section: "Reference",
     items: [
       { label: "API Reference", href: "/docs/api" },
-      { label: "llm.txt (for AI agents)", href: "/llm.txt", external: true },
+      { label: "llm.txt", href: "/llm.txt", external: true },
     ],
   },
 ];
