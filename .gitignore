@@ -50,6 +50,15 @@ coverage/
 # Local pi/skills
 .pi/
 
+# Agent skills (installed by `npx skills add`, not part of source)
+.agents/
+skills
+skills-lock.json
+
+# Claude Code project files
+.claude/
+.crush/
+
 # Foundry
 broadcast/
 lib/
