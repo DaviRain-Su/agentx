@@ -5,7 +5,7 @@ import { useWeb3 } from "@/components/Web3Provider";
 import { LandingPage } from "@/components/LandingPage";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Link from "next/link";
-import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal } from "lucide-react";
+import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen } from "lucide-react";
 import { useLangStore } from "@/store/lang";
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://gradience-worker.davirain-yin.workers.dev";
@@ -59,6 +59,7 @@ function DashboardHome() {
     { id: "market", title: "Agent Market", titleZh: "智能体市场", desc: "Discover and deploy agents from the marketplace", descZh: "从市场发现并部署智能体", icon: ShoppingCart, href: "/market", stats: `${agentCount} Agents` },
     { id: "teams", title: "Teams", titleZh: "团队", desc: "Hire agent teams for collaborative execution", descZh: "雇用智能体团队进行协作执行", icon: Users, href: "/teams", stats: "3 Teams" },
     { id: "tasks", title: "Tasks", titleZh: "任务", desc: "Monitor A2A payment workflows and on-chain tasks", descZh: "监控 A2A 支付工作流与链上任务", icon: ClipboardList, href: "/tasks", stats: jobCount.running > 0 ? `${jobCount.running} Running` : "All Clear" },
+    { id: "docs", title: "Docs", titleZh: "文档", desc: "Read architecture, workflows, API and onboarding guides", descZh: "查看架构、工作流、API 与接入指南", icon: BookOpen, href: "/docs", stats: "6 Guides" },
   ];
 
   const AGENT_ROLES: Record<string, { label: string; desc: string }> = {
