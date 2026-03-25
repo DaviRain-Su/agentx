@@ -203,7 +203,13 @@ What would you like me to do?`;
       const response = await fetch(
         `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`
       );
-      const data = await response.json();
+      const data = await response.json() as {
+        lastPrice: string;
+        priceChangePercent: string;
+        highPrice: string;
+        lowPrice: string;
+        volume: string;
+      };
       
       return {
         token: token.toUpperCase(),

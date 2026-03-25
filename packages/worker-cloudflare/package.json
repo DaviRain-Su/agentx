@@ -4,18 +4,27 @@
   "description": "Gradience Agent Worker on Cloudflare",
   "main": "dist/index.js",
   "scripts": {
+    "prepare:pi-worker": "node scripts/prepare-pi-worker.mjs",
+    "prepare:sdk": "cd ../agent-sdk && npm run build",
+    "predev": "npm run prepare:sdk && npm run prepare:pi-worker",
+    "prebuild": "npm run prepare:sdk && npm run prepare:pi-worker",
+    "predeploy": "npm run prepare:sdk && npm run prepare:pi-worker",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "esbuild src/index.ts --bundle --platform=neutral --target=es2022 --outfile=dist/index.js",
+    "build": "wrangler deploy --dry-run --outdir dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
+    "@gradience/agent-sdk": "file:../agent-sdk",
     "@gradience/shared-orchestrator": "file:../shared-orchestrator",
     "@mariozechner/pi-agent-core": "^0.62.0",
     "@mariozechner/pi-ai": "^0.62.0",
     "@sinclair/typebox": "^0.34.48",
-    "ethers": "^6.11.0"
+    "ethers": "^6.11.0",
+    "pi-coding-agent-worker": "file:../../vendor/pi-worker/packages/pi-coding-agent-worker",
+    "pi-tui-worker": "file:../../vendor/pi-worker/packages/pi-tui-worker",
+    "pi-worker": "file:../../vendor/pi-worker/packages/pi-worker"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250313.0",

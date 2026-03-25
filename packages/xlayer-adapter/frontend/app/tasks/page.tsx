@@ -3,20 +3,48 @@
 import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLangStore } from "@/store/lang";
+import { useAppSettingsStore } from "@/store/settings";
 import { useWeb3 } from "@/components/Web3Provider";
 import { ethers } from "ethers";
-import { 
-  ClipboardList, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Loader2, 
-  AlertCircle, 
-  Check, 
+import {
+  ClipboardList,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  AlertCircle,
+  Check,
   X,
-  ExternalLink 
+  ExternalLink,
+  Zap
 } from "lucide-react";
 import Link from "next/link";
+
+// ─── A2A Job types ────────────────────────────────────────────────────────────
+
+interface PaymentRecord {
+  step: string;
+  from?: string;
+  to?: string;
+  amount: string;
+  txHash?: string;
+  blockNumber?: number;
+  explorerUrl?: string;
+}
+
+interface A2AJob {
+  jobId: string;
+  symbol: string;
+  createdAt: number;
+  status: "running" | "completed" | "failed" | "unknown";
+  source?: "workflow" | "simulated";
+  currentPrice?: number;
+  priceSource?: string;
+  action?: "BUY" | "SELL" | "HOLD";
+  payments?: PaymentRecord[];
+  totalSpent?: string;
+  refunded?: string;
+}
 
 interface Task {
   id: string;
@@ -54,12 +82,96 @@ const CHAIN_STATUS_MAP: Record<number, Task["status"]> = {
 
 export default function TasksPage() {
   const { lang } = useLangStore();
+  const { workerUrl } = useAppSettingsStore();
+  const workerBase = workerUrl.replace(/\/+$/, "");
   const { taskManager, paymentHub, address, signer } = useWeb3();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [txPending, setTxPending] = useState(false);
+
+  // ── A2A Jobs state ──────────────────────────────────────────────────────────
+  const [a2aJobs, setA2aJobs] = useState<A2AJob[]>([]);
+  const [selectedA2aJob, setSelectedA2aJob] = useState<A2AJob | null>(null);
+
+  // Load A2A jobs from localStorage and poll each one
+  const fetchA2aJobs = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const stored: { jobId: string; symbol: string; createdAt: number }[] =
+      JSON.parse(localStorage.getItem("a2a_jobs") || "[]");
+    const simulated: A2AJob[] =
+      JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
+    if (stored.length === 0 && simulated.length === 0) {
+      setA2aJobs([]);
+      return;
+    }
+
+    // Only keep the 10 most recent
+    const recent = stored.slice(-10);
+
+    const updated = await Promise.all(
+      recent.map(async ({ jobId, symbol, createdAt }) => {
+        try {
+          const res = await fetch(`${workerBase}/api/a2a/${jobId}`);
+          if (!res.ok) return { jobId, symbol, createdAt, status: "unknown" as const };
+          const data = await res.json() as {
+            status?: string;
+            result?: {
+              status?: string;
+              currentPrice?: number;
+              priceSource?: string;
+              action?: "BUY" | "SELL" | "HOLD";
+              payments?: PaymentRecord[];
+              totalSpent?: string;
+              refunded?: string;
+            };
+          };
+
+          const cfStatus = data.status; // "running" | "complete" | "errored" | "paused" | "waiting"
+          const result = data.result;
+          const jobStatus: A2AJob["status"] =
+            cfStatus === "completed" || cfStatus === "complete" ? "completed" :
+            cfStatus === "failed" || cfStatus === "errored" ? "failed" :
+            cfStatus === "running" || cfStatus === "waiting" || cfStatus === "paused" ? "running" :
+            "unknown";
+
+          return {
+            jobId,
+            symbol,
+            createdAt,
+            status: jobStatus,
+            source: "workflow",
+            currentPrice: result?.currentPrice,
+            priceSource: result?.priceSource,
+            action: result?.action,
+            payments: result?.payments,
+            totalSpent: result?.totalSpent,
+            refunded: result?.refunded,
+          } as A2AJob;
+        } catch {
+          return { jobId, symbol, createdAt, status: "unknown" as const };
+        }
+      })
+    );
+
+    const merged = [...simulated, ...updated]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 20);
+    setA2aJobs(merged);
+
+    // Update selected if open
+    if (selectedA2aJob) {
+      const refreshed = merged.find(j => j.jobId === selectedA2aJob.jobId);
+      if (refreshed) setSelectedA2aJob(refreshed);
+    }
+  }, [selectedA2aJob, workerBase]);
+
+  useEffect(() => {
+    fetchA2aJobs();
+    const interval = setInterval(fetchA2aJobs, 5000);
+    return () => clearInterval(interval);
+  }, [fetchA2aJobs]);
 
   // Convert chain data to Task format
   const chainTaskToTask = useCallback((raw: any, taskId: string): Task => {
@@ -142,20 +254,21 @@ export default function TasksPage() {
     return () => clearInterval(interval);
   }, [taskManager, address, fetchTasks]);
 
-  // Handle confirmation approval/rejection
+  // Handle confirmation approval/rejection — notifies Worker via KV
   const handleConfirm = async (taskId: string, approved: boolean) => {
-    if (!taskManager || !signer) return;
-    
     setTxPending(true);
     try {
-      // In a real implementation, this would call a contract method
-      // For now, we'll simulate the confirmation
-      console.log(`Confirming task ${taskId}: ${approved ? "approved" : "rejected"}`);
-      
-      // Remove from pending
+      const res = await fetch(`${workerBase}/tasks/${taskId}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
+      if (!res.ok) throw new Error(`Worker responded ${res.status}`);
+
+      // Remove from pending list immediately for responsive UI
       setPendingConfirmations(prev => prev.filter(c => c.taskId !== taskId));
-      
-      // Refresh tasks
+
+      // Refresh tasks to pick up new status
       await fetchTasks();
     } catch (err) {
       console.error("Confirmation failed:", err);
@@ -249,6 +362,124 @@ export default function TasksPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* A2A Payment Jobs */}
+        {a2aJobs.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Zap className="w-3 h-3" />
+              A2A Payment Workflows ({a2aJobs.length})
+            </h2>
+            <div className="grid lg:grid-cols-2 gap-4">
+              {a2aJobs.map((job) => (
+                <button
+                  key={job.jobId}
+                  onClick={() => setSelectedA2aJob(selectedA2aJob?.jobId === job.jobId ? null : job)}
+                  className={`text-left border p-4 transition-all ${
+                    selectedA2aJob?.jobId === job.jobId
+                      ? "bg-white/10 border-white"
+                      : "bg-white/5 border-white/10 hover:border-white/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {job.status === "running" && <Loader2 className="w-4 h-4 text-white/60 animate-spin" />}
+                      {job.status === "completed" && <CheckCircle className="w-4 h-4 text-green-400" />}
+                      {job.status === "failed" && <XCircle className="w-4 h-4 text-red-400" />}
+                      {job.status === "unknown" && <Clock className="w-4 h-4 text-white/40" />}
+                      <span className="font-medium text-white">{job.symbol} A2A Flow</span>
+                      {job.source === "simulated" && (
+                        <span className="text-[10px] text-amber-300 border border-amber-400/30 px-1.5 py-0.5">
+                          {lang === "en" ? "Demo" : "演示"}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs ${
+                      job.status === "completed" ? "text-green-400" :
+                      job.status === "failed" ? "text-red-400" :
+                      job.status === "running" ? "text-white/60" : "text-white/40"
+                    }`}>
+                      {job.status === "completed" ? (lang === "en" ? "Completed" : "已完成") :
+                       job.status === "failed" ? (lang === "en" ? "Failed" : "失败") :
+                       job.status === "running" ? (lang === "en" ? "Running" : "执行中") :
+                       (lang === "en" ? "Unknown" : "未知")}
+                    </span>
+                  </div>
+                  {job.currentPrice !== undefined && (
+                    <p className="text-sm text-white/60">
+                      {job.symbol} ${job.currentPrice.toLocaleString()} · {job.priceSource}
+                      {job.action && <span className={`ml-2 font-medium ${
+                        job.action === "BUY" ? "text-green-400" :
+                        job.action === "SELL" ? "text-red-400" : "text-white/60"
+                      }`}>{job.action}</span>}
+                    </p>
+                  )}
+                  {job.payments && (
+                    <p className="text-xs text-white/40 mt-1">
+                      {job.payments.length} {job.source === "simulated"
+                        ? (lang === "en" ? "simulated steps" : "笔模拟步骤")
+                        : (lang === "en" ? "on-chain payments" : "笔链上支付")} · {job.totalSpent} USDC
+                    </p>
+                  )}
+                  <p className="text-xs text-white/30 mt-1">
+                    {new Date(job.createdAt).toLocaleString()} · ID: {job.jobId.slice(0, 8)}…
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            {/* A2A Payment Timeline */}
+            {selectedA2aJob?.payments && selectedA2aJob.payments.length > 0 && (
+              <div className="border border-white/10 bg-white/5 p-6 space-y-4">
+                <h3 className="text-xs text-white/40 uppercase tracking-[0.2em]">
+                  {lang === "en" ? "Payment Chain" : "支付链"}
+                </h3>
+                <div className="space-y-3">
+                  {selectedA2aJob.payments.map((p, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-2 h-2 rounded-full bg-green-400 mt-1.5" />
+                        {i < selectedA2aJob.payments!.length - 1 && (
+                          <div className="w-px flex-1 bg-white/10 mt-1 mb-0" style={{ minHeight: "24px" }} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 pb-3">
+                        <p className="text-sm text-white font-medium">{p.step}</p>
+                        <p className="text-xs text-white/50 mt-0.5">{p.amount}</p>
+                        {p.explorerUrl && p.txHash ? (
+                          <a
+                            href={p.explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-white/40 hover:text-white transition mt-1 font-mono"
+                          >
+                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                            {p.txHash.slice(0, 10)}…{p.txHash.slice(-6)}
+                          </a>
+                        ) : (
+                          <p className="text-xs text-white/40 mt-1">{lang === "en" ? "simulation" : "模拟执行"}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-white/40 mt-1">{p.blockNumber ? `#${p.blockNumber}` : "--"}</span>
+                    </div>
+                  ))}
+                </div>
+                {selectedA2aJob.totalSpent && (
+                  <div className="pt-3 border-t border-white/10 flex justify-between text-sm">
+                    <span className="text-white/40">{lang === "en" ? "Total spent" : "总支出"}</span>
+                    <span className="text-white">{selectedA2aJob.totalSpent} USDC</span>
+                  </div>
+                )}
+                {selectedA2aJob.refunded && parseFloat(selectedA2aJob.refunded) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">{lang === "en" ? "Refunded" : "已退款"}</span>
+                    <span className="text-green-400">{selectedA2aJob.refunded} USDC</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -373,7 +604,7 @@ export default function TasksPage() {
 
                 {/* View on Explorer */}
                 <a
-                  href={`https://www.oklink.com/x-layer-testnet/address/${selectedTask.requester}`}
+                  href={`https://www.okx.com/web3/explorer/xlayer-test/address/${selectedTask.requester}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-white/40 hover:text-white transition text-sm"

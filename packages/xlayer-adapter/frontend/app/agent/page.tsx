@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useWeb3 } from "@/components/Web3Provider";
-import { Terminal, Send, Loader2, Lock, Unlock, Trash2, RefreshCw, ShoppingCart, Users, Zap, Check, Star } from "lucide-react";
+import { useAppSettingsStore } from "@/store/settings";
+import { Terminal, Send, Loader2, Lock, Trash2, ShoppingCart, Users, Zap, Star, FileCode2, Sparkles } from "lucide-react";
 import { ethers } from "ethers";
 
 // Agent Registry ABI (simplified)
@@ -30,6 +31,14 @@ interface Agent {
   usage?: number;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  members: string[];
+  hourlyRate: string;
+  description: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant" | "system";
@@ -38,7 +47,33 @@ interface Message {
   agentName?: string;
 }
 
-type ViewMode = 'marketplace' | 'chat' | 'team';
+interface SessionHistoryItem {
+  role: "user" | "assistant" | "system";
+  content: string;
+  ts: number;
+}
+
+interface CodegenResult {
+  status: "completed";
+  jobId: string;
+  summary: string;
+  files: string[];
+  artifactKey: string;
+  artifactBytes: number;
+  downloadUrl: string;
+  model: string;
+  createdAt: number;
+  completedAt: number;
+}
+
+interface CodegenStatusResponse {
+  jobId: string;
+  status: "running" | "completed" | "failed" | "unknown";
+  result?: CodegenResult;
+  error?: string;
+}
+
+type ViewMode = 'marketplace' | 'chat' | 'team' | 'codegen';
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 // Mock data - would come from contract
@@ -89,7 +124,7 @@ const MOCK_AGENTS: Agent[] = [
   },
 ];
 
-const MOCK_TEAMS = [
+const MOCK_TEAMS: Team[] = [
   {
     id: "team1",
     name: "Alpha Trading Squad",
@@ -108,17 +143,32 @@ const MOCK_TEAMS = [
 
 export default function AgentPage() {
   const { address, signer, usdc } = useWeb3();
+  const { workerUrl: configuredWorkerUrl, agentModel } = useAppSettingsStore();
+  const workerUrl = configuredWorkerUrl.replace(/\/+$/, "");
+
   const [viewMode, setViewMode] = useState<ViewMode>('marketplace');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<any>(null);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [connStatus, setConnStatus] = useState<ConnectionStatus>("disconnected");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
+
+  // Codegen state
+  const [codePrompt, setCodePrompt] = useState("");
+  const [codeLanguage, setCodeLanguage] = useState<"typescript" | "javascript" | "solidity">("typescript");
+  const [codeTarget, setCodeTarget] = useState<"cloudflare-worker" | "smart-contract">("cloudflare-worker");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [codegenJobId, setCodegenJobId] = useState<string | null>(null);
+  const [codegenStatus, setCodegenStatus] = useState<"idle" | "running" | "completed" | "failed">("idle");
+  const [codegenError, setCodegenError] = useState<string | null>(null);
+  const [codegenResult, setCodegenResult] = useState<CodegenResult | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -127,9 +177,35 @@ export default function AgentPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const toWorkerUrl = (path: string) => {
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return `${workerUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  };
+
+  const callWorker = async <T,>(path: string, init?: RequestInit): Promise<T> => {
+    if (!workerUrl) throw new Error("NEXT_PUBLIC_WORKER_URL is not configured");
+    const response = await fetch(toWorkerUrl(path), {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+    });
+    const text = await response.text();
+    const data = text ? (() => {
+      try { return JSON.parse(text); } catch { return { raw: text }; }
+    })() : {};
+
+    if (!response.ok) {
+      const message = (data as { error?: string }).error || `Request failed (${response.status})`;
+      throw new Error(message);
+    }
+    return data as T;
+  };
+
   // Purchase agent access
-  const purchaseAccess = async (agent: Agent) => {
-    if (!signer || !usdc || !address) return;
+  const purchaseAccess = async (agent: Agent): Promise<boolean> => {
+    if (!signer || !usdc || !address) return false;
     
     setIsPurchasing(true);
     try {
@@ -144,10 +220,11 @@ export default function AgentPage() {
       await tx.wait();
       
       setHasPurchased(true);
-      // In real implementation, this would be verified on-chain
+      return true;
     } catch (err) {
       console.error("Purchase failed:", err);
       alert("Purchase failed. Please try again.");
+      return false;
     } finally {
       setIsPurchasing(false);
     }
@@ -157,27 +234,66 @@ export default function AgentPage() {
   const startChat = async (agent: Agent) => {
     setSelectedAgent(agent);
     setConnStatus("connecting");
-    
-    // Simulate connection
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setConnStatus("connected");
-    setViewMode('chat');
-    
-    // Welcome message
-    setMessages([
-      {
-        id: "welcome",
-        role: "system",
-        content: `Connected to ${agent.name}. Type your message to start the conversation.`,
-        timestamp: new Date(),
+    setChatError(null);
+
+    try {
+      const templateMap: Record<string, string> = {
+        "0x1111": "orchestrator",
+        "0x2222": "price-oracle",
+        "0x3333": "trade-strategy",
+        "0x4444": "codegen",
+      };
+      const deploy = await callWorker<{ sessionId: string }>("/api/deploy", {
+        method: "POST",
+        body: JSON.stringify({
+          template: templateMap[agent.id] || "orchestrator",
+          config: { name: agent.name, model: agentModel },
+        }),
+      });
+
+      setSessionId(deploy.sessionId);
+      setConnStatus("connected");
+      setViewMode("chat");
+
+      const history = await callWorker<{ history: SessionHistoryItem[] }>(`/agent/history/${deploy.sessionId}`);
+      const mapped = history.history.map((item, index) => ({
+        id: `${item.ts}-${index}`,
+        role: item.role,
+        content: item.content,
+        timestamp: new Date(item.ts),
+        agentName: item.role === "assistant" ? agent.name : undefined,
+      }));
+
+      if (mapped.length > 0) {
+        setMessages(mapped);
+      } else {
+        setMessages([
+          {
+            id: "welcome",
+            role: "system",
+            content: `Connected to ${agent.name} via Worker session ${deploy.sessionId.slice(0, 8)}...`,
+            timestamp: new Date(),
+          },
+        ]);
       }
-    ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setConnStatus("error");
+      setChatError(message);
+      setMessages([
+        {
+          id: "connect-error",
+          role: "system",
+          content: `Connection failed: ${message}`,
+          timestamp: new Date(),
+        },
+      ]);
+    }
   };
 
   // Send message
   const sendMessage = async () => {
-    if (!input.trim() || isThinking || !selectedAgent) return;
+    if (!input.trim() || isThinking || !selectedAgent || !sessionId) return;
 
     const text = input.trim();
     setInput("");
@@ -191,26 +307,33 @@ export default function AgentPage() {
     }]);
 
     setIsThinking(true);
+    try {
+      const result = await callWorker<{ response: string }>(`/agent/chat/${sessionId}`, {
+        method: "POST",
+        body: JSON.stringify({ message: text }),
+      });
 
-    // Simulate agent response
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const responses: Record<string, string> = {
-      "0x1111": "I'm the Gradience Assistant. I can help you with platform features, workflow creation, and general questions. What would you like to know?",
-      "0x2222": "I've analyzed the current market. ETH is trading at $1,847 (+2.3%) with bullish momentum. RSI at 62 suggests room for more upside. Would you like technical analysis on any specific pair?",
-      "0x3333": "Based on current market conditions, I recommend a cautious approach. Consider a 15% position size with tight stop-loss. Shall I backtest a specific strategy for you?",
-      "0x4444": "I can help you write smart contracts, scripts, or entire dApps. What would you like to build? I support Solidity, TypeScript, and Python.",
-    };
-
-    setMessages(prev => [...prev, {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: responses[selectedAgent.id] || "I'm processing your request...",
-      timestamp: new Date(),
-      agentName: selectedAgent.name,
-    }]);
-
-    setIsThinking(false);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: result.response || "(empty response)",
+        timestamp: new Date(),
+        agentName: selectedAgent.name,
+      }]);
+      setConnStatus("connected");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setConnStatus("error");
+      setChatError(message);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "system",
+        content: `Worker error: ${message}`,
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -220,13 +343,81 @@ export default function AgentPage() {
     }
   };
 
-  const clearHistory = () => setMessages([]);
+  const clearHistory = async () => {
+    if (sessionId) {
+      try {
+        await callWorker<{ ok?: boolean }>(`/agent/clear/${sessionId}`, { method: "POST", body: JSON.stringify({}) });
+      } catch (error) {
+        console.error("Failed to clear remote history:", error);
+      }
+    }
+    setMessages([]);
+  };
 
   const backToMarket = () => {
     setViewMode('marketplace');
     setSelectedAgent(null);
     setConnStatus("disconnected");
+    setSessionId(null);
+    setChatError(null);
     setMessages([]);
+  };
+
+  const handlePaidChat = async (agent: Agent) => {
+    const missingOnchainPurchaseDeps = !signer || !usdc || MARKET_CONTRACT === "0x0000000000000000000000000000000000000000";
+    if (missingOnchainPurchaseDeps) {
+      await startChat(agent);
+      return;
+    }
+
+    if (!hasPurchased) {
+      const purchased = await purchaseAccess(agent);
+      if (!purchased) return;
+    }
+    await startChat(agent);
+  };
+
+  const runCodegen = async () => {
+    if (!codePrompt.trim() || isGenerating) return;
+
+    setIsGenerating(true);
+    setCodegenError(null);
+    setCodegenResult(null);
+    setCodegenStatus("running");
+
+    try {
+      const start = await callWorker<{ jobId: string; status: string }>("/api/codegen", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: codePrompt.trim(),
+          language: codeLanguage,
+          target: codeTarget,
+          model: agentModel,
+        }),
+      });
+      setCodegenJobId(start.jobId);
+
+      for (let attempt = 0; attempt < 90; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const status = await callWorker<CodegenStatusResponse>(`/api/codegen/${start.jobId}`);
+        if (status.status === "completed" && status.result) {
+          setCodegenResult(status.result);
+          setCodegenStatus("completed");
+          return;
+        }
+        if (status.status === "failed") {
+          throw new Error(status.error || "Code generation failed");
+        }
+      }
+
+      throw new Error("Code generation timed out");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setCodegenError(message);
+      setCodegenStatus("failed");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // ─── Render Helpers ────────────────────────────────────────────────────
@@ -255,6 +446,13 @@ export default function AgentPage() {
           >
             <Users className="w-4 h-4 inline mr-2" />
             Teams
+          </button>
+          <button
+            onClick={() => setViewMode('codegen')}
+            className={`px-4 py-2 text-sm transition ${viewMode === 'codegen' ? 'bg-white text-black' : 'border border-white/20 text-white hover:border-white/40'}`}
+          >
+            <FileCode2 className="w-4 h-4 inline mr-2" />
+            Codegen
           </button>
         </div>
       </div>
@@ -313,7 +511,7 @@ export default function AgentPage() {
                 <span>{agent.usage} uses</span>
               </div>
               <button
-                onClick={() => startChat(agent)}
+                onClick={() => handlePaidChat(agent)}
                 disabled={isPurchasing}
                 className="w-full py-2 bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition flex items-center justify-center gap-2"
               >
@@ -379,7 +577,7 @@ export default function AgentPage() {
                 }}
                 className="px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 transition"
               >
-                Hire Team
+                {selectedTeam?.id === team.id ? "Hired" : "Hire Team"}
               </button>
             </div>
           </div>
@@ -387,6 +585,132 @@ export default function AgentPage() {
       </div>
     </div>
   );
+
+  const renderCodegenView = () => {
+    const downloadUrl = codegenResult ? toWorkerUrl(codegenResult.downloadUrl) : null;
+    const statusLabel = {
+      idle: "Idle",
+      running: "Generating...",
+      completed: "Completed",
+      failed: "Failed",
+    }[codegenStatus];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">
+              CodeFlare Workflow
+            </span>
+            <h1 className="text-4xl font-light text-white">Generate Code with Worker</h1>
+          </div>
+          <button
+            onClick={() => setViewMode("marketplace")}
+            className="px-4 py-2 border border-white/20 text-white text-sm hover:border-white/40 transition"
+          >
+            Back to Agents
+          </button>
+        </div>
+
+        <div className="border border-white/10 bg-white/5 p-5 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Target</label>
+              <select
+                value={codeTarget}
+                onChange={(e) => setCodeTarget(e.target.value as "cloudflare-worker" | "smart-contract")}
+                className="w-full bg-black/40 border border-white/20 text-white text-sm px-3 py-2 focus:outline-none"
+              >
+                <option value="cloudflare-worker">Cloudflare Worker</option>
+                <option value="smart-contract">Smart Contract</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Language</label>
+              <select
+                value={codeLanguage}
+                onChange={(e) => setCodeLanguage(e.target.value as "typescript" | "javascript" | "solidity")}
+                className="w-full bg-black/40 border border-white/20 text-white text-sm px-3 py-2 focus:outline-none"
+              >
+                <option value="typescript">TypeScript</option>
+                <option value="javascript">JavaScript</option>
+                <option value="solidity">Solidity</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Requirement Prompt</label>
+            <textarea
+              value={codePrompt}
+              onChange={(e) => setCodePrompt(e.target.value)}
+              rows={8}
+              placeholder="Describe what you want to build..."
+              className="w-full bg-black/40 border border-white/20 text-white text-sm px-3 py-3 focus:outline-none resize-y placeholder:text-white/25"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-white/40">
+              Status: <span className="text-white/70">{statusLabel}</span> {codegenJobId ? `• ${codegenJobId}` : ""}
+            </div>
+            <button
+              onClick={runCodegen}
+              disabled={isGenerating || !codePrompt.trim()}
+              className="px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 disabled:opacity-40 transition inline-flex items-center gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Running Workflow
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Generate
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {codegenError && (
+          <div className="border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300">
+            {codegenError}
+          </div>
+        )}
+
+        {codegenResult && (
+          <div className="border border-white/10 bg-white/5 p-5 space-y-4">
+            <h2 className="text-lg text-white font-medium">Generated Artifact</h2>
+            <p className="text-sm text-white/70 whitespace-pre-wrap">{codegenResult.summary}</p>
+            <div className="text-xs text-white/40">Model: {codegenResult.model}</div>
+            <div className="space-y-2">
+              <div className="text-xs text-white/40 uppercase tracking-[0.2em]">Files</div>
+              <ul className="grid md:grid-cols-2 gap-2 text-sm font-mono">
+                {codegenResult.files.map((file) => (
+                  <li key={file} className="border border-white/10 px-3 py-2 text-white/75">
+                    {file}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {downloadUrl && (
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 text-sm text-white hover:border-white/40 transition"
+              >
+                <FileCode2 className="w-4 h-4" />
+                Download Artifact JSON
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderChat = () => {
     if (!selectedAgent) return null;
@@ -414,7 +738,7 @@ export default function AgentPage() {
               <div className="flex items-center gap-2 text-sm">
                 <div className={`w-2 h-2 rounded-full ${connStatus === "connected" ? "bg-green-400 animate-pulse" : "bg-yellow-400"}`} />
                 <span className={statusColor}>
-                  {connStatus === "connected" ? "Online" : "Connecting..."}
+                  {connStatus === "connected" ? "Online" : connStatus === "error" ? "Error" : "Connecting..."}
                 </span>
               </div>
             </div>
@@ -518,6 +842,12 @@ export default function AgentPage() {
           </div>
         </div>
 
+        {chatError && (
+          <div className="text-xs text-red-300 border border-red-400/30 bg-red-400/10 px-3 py-2">
+            {chatError}
+          </div>
+        )}
+
         {/* Usage info */}
         <div className="flex items-center justify-between text-xs text-white/30">
           <span>
@@ -549,6 +879,7 @@ export default function AgentPage() {
       <div className="max-w-5xl mx-auto">
         {viewMode === 'marketplace' && renderMarketplace()}
         {viewMode === 'team' && renderTeamView()}
+        {viewMode === 'codegen' && renderCodegenView()}
         {viewMode === 'chat' && renderChat()}
       </div>
     </DashboardLayout>

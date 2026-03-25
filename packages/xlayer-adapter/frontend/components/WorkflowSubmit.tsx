@@ -129,7 +129,7 @@ export function WorkflowSubmit({ onClose }: WorkflowSubmitProps) {
           Task ID: {taskId}
         </p>
         <a
-          href={`https://www.oklink.com/x-layer-testnet/tx/${txHash}`}
+          href={`https://www.okx.com/web3/explorer/xlayer-test/tx/${txHash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 hover:underline text-sm"

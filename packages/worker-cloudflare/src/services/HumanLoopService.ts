@@ -159,20 +159,23 @@ export class HumanLoopService {
   }
 
   /**
-   * Check local state for approval status
-   * (Used as fallback or for testing)
+   * Check local state for approval status via KV store.
+   * Set by the Worker's POST /tasks/:id/confirm endpoint.
    */
   private async checkLocalStatus(
     taskId: string,
     stepId: string
   ): Promise<HumanApprovalStatus> {
-    // For now, this is a placeholder for future xurl-based approval checking
-    // In production, this could check:
-    // - xurl for approval messages
-    // - Off-chain database
-    // - Message queue
-    
-    return { stepId, status: "pending" };
+    try {
+      const raw = await this.env.GRADIENCE_KV.get(`human_approval:${taskId}`);
+      if (!raw) return { stepId, status: "pending" };
+      const approval = JSON.parse(raw) as { approved: boolean; ts: number };
+      // Clean up after reading
+      await this.env.GRADIENCE_KV.delete(`human_approval:${taskId}`);
+      return { stepId, status: approval.approved ? "approved" : "rejected" };
+    } catch {
+      return { stepId, status: "pending" };
+    }
   }
 
   /**

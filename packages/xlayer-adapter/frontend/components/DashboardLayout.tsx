@@ -183,10 +183,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
 
           {/* Settings */}
-          <button className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all mb-1">
+          <Link href="/settings" className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all mb-1">
             <Settings className="w-5 h-5 shrink-0" />
             {isSidebarOpen && <span className="font-medium text-sm">Settings</span>}
-          </button>
+          </Link>
 
           {/* Disconnect */}
           <button
@@ -221,10 +221,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center gap-4">
             <div className="text-sm text-white/60">
               <span className="text-white/40">Wallet:</span>{" "}
-              {address?.slice(0, 6)}...{address?.slice(-4)}
+              {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected"}
             </div>
             <div className="w-10 h-10 border border-white/30 flex items-center justify-center">
-              <span className="text-xs font-bold">{address?.slice(0, 2)}</span>
+              <span className="text-xs font-bold">{address ? address.slice(0, 2) : "--"}</span>
             </div>
           </div>
         </header>

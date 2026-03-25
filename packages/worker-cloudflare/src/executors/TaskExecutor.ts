@@ -14,7 +14,7 @@ import { WorkflowService, WorkflowDefinition, WorkflowStepDefinition } from "../
 import { StateManager, TaskState } from "../services/StateManager";
 import { HumanLoopService } from "../services/HumanLoopService";
 import { AIAgent } from "../agents/AIAgent";
-import { CONTRACTS, TASK_MANAGER_ABI } from "../config/contracts";
+import { CONTRACTS, TASK_MANAGER_ABI, PAYMENT_HUB_ABI, USDC_ABI } from "../config/contracts";
 import { 
   WorkerError, 
   AgentExecutionError, 
@@ -49,6 +49,7 @@ export class TaskExecutor {
   private _provider: ethers.JsonRpcProvider | null = null;
   private _wallet: ethers.Wallet | null = null;
   private _taskManager: ethers.Contract | null = null;
+  private _paymentHub: ethers.Contract | null = null;
 
   constructor(private env: Env) {
     this.workflowService = new WorkflowService(env);
@@ -67,12 +68,70 @@ export class TaskExecutor {
         TASK_MANAGER_ABI,
         this._wallet
       );
+      this._paymentHub = new ethers.Contract(
+        CONTRACTS.paymentHub,
+        PAYMENT_HUB_ABI,
+        this._wallet
+      );
     }
     return {
       provider: this._provider,
       wallet: this._wallet!,
       taskManager: this._taskManager!,
+      paymentHub: this._paymentHub!,
     };
+  }
+
+  /**
+   * Derive agent wallet address deterministically from NODE_PRIVATE_KEY
+   */
+  private deriveAgentAddress(agentName: string): string {
+    const walletSeed = ethers.keccak256(ethers.toUtf8Bytes(`${this.env.NODE_PRIVATE_KEY}:${agentName}`));
+    return new ethers.Wallet(walletSeed).address;
+  }
+
+  /**
+   * Settle A2A payments via PaymentHub.createEscrow.
+   * Fetches task budget from chain. Breakdown: price-agent 30%, trade-agent 50%, orchestrator 20%.
+   */
+  private async settlePayments(taskId: string): Promise<void> {
+    try {
+      const { wallet, taskManager, paymentHub } = this.initBlockchain();
+
+      // Read budget from chain
+      const task = await taskManager.getTask(taskId);
+      const totalBudget: bigint = task.totalBudget ?? 0n;
+      if (totalBudget === 0n) {
+        console.log(`[TaskExecutor] Skipping settlement — zero budget for task ${taskId}`);
+        return;
+      }
+
+      const priceAgentAddr  = this.deriveAgentAddress("price-agent");
+      const tradeAgentAddr  = this.deriveAgentAddress("trade-agent");
+      const orchestratorAddr = wallet.address;
+
+      const priceShare  = (totalBudget * 30n) / 100n;
+      const tradeShare  = (totalBudget * 50n) / 100n;
+      const orchShare   = totalBudget - priceShare - tradeShare;
+
+      // Approve PaymentHub to spend USDC
+      const usdc = new ethers.Contract(CONTRACTS.usdc, USDC_ABI, wallet);
+      const approveTx = await usdc.approve(CONTRACTS.paymentHub, totalBudget);
+      await approveTx.wait(1);
+
+      const breakdown = [
+        { agentOwner: priceAgentAddr,  amount: priceShare,  description: "PriceMonitorAgent (30%)" },
+        { agentOwner: tradeAgentAddr,  amount: tradeShare,  description: "TradeExecutorAgent (50%)" },
+        { agentOwner: orchestratorAddr, amount: orchShare,  description: "Orchestrator (20%)" },
+      ];
+
+      const tx = await paymentHub.createEscrow(taskId, totalBudget, breakdown);
+      const receipt = await tx.wait(1);
+      console.log(`[TaskExecutor] PaymentHub.createEscrow settled: tx=${receipt.hash}`);
+    } catch (err) {
+      // Settlement failure is non-fatal — log and continue
+      console.error(`[TaskExecutor] PaymentHub settlement failed (non-fatal): ${err}`);
+    }
   }
 
   /**
@@ -113,6 +172,9 @@ export class TaskExecutor {
       if (result.success) {
         await this.stateManager.updateTaskStatus(taskId, "completed");
         console.log(`[TaskExecutor] Task ${taskId} completed successfully`);
+
+        // Settle A2A payments via PaymentHub (reads budget from chain)
+        await this.settlePayments(taskId);
       } else {
         await this.stateManager.updateTaskStatus(taskId, "failed", result.error);
         console.log(`[TaskExecutor] Task ${taskId} failed: ${result.error}`);

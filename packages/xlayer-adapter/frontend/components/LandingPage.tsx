@@ -251,7 +251,7 @@ export function LandingPage() {
             <div className="relative">
               <div className="aspect-square border border-white/10 p-8 relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-                <div className="h-full flex flex-col justify-between relative">
+                <div className="h-full flex flex-col justify-center gap-4 relative">
                   {FEATURES.map((f, i) => (
                     <div key={f.id} className="flex items-center gap-4 p-4 border border-white/10 bg-white/5">
                       <f.icon className="w-6 h-6 text-white/60" />

@@ -1,82 +1,141 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useWeb3 } from "@/components/Web3Provider";
 import { LandingPage } from "@/components/LandingPage";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Link from "next/link";
-import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Zap, Activity, Cpu, Shield, Terminal } from "lucide-react";
+import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal } from "lucide-react";
 import { useLangStore } from "@/store/lang";
-import { t } from "@/lib/i18n";
 
-const STATS = [
-  { id: "credits", title: "Protocol Credits", value: "842.12", unit: "GPC", change: "+12.4%", icon: Activity },
-  { id: "agents", title: "Active Agents", value: "14", unit: "", icon: Cpu },
-  { id: "node", title: "Node Status", value: "OPTIMIZED", latency: "14ms", icon: Shield },
-];
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://gradience-worker.davirain-yin.workers.dev";
 
-const MODULES = [
-  { id: "workflows", title: "Workflows", titleZh: "工作流", desc: "Build and deploy automated agent workflows", descZh: "构建和部署自动化智能体工作流", icon: Workflow, href: "/workflows", stats: "12 Active" },
-  { id: "market", title: "Agent Market", titleZh: "智能体市场", desc: "Discover and deploy agents from the marketplace", descZh: "从市场发现并部署智能体", icon: ShoppingCart, href: "/market", stats: "128 Available" },
-  { id: "teams", title: "Teams", titleZh: "团队", desc: "Create agent squads for collaborative execution", descZh: "创建智能体小队进行协作执行", icon: Users, href: "/teams", stats: "5 Members" },
-  { id: "tasks", title: "Tasks", titleZh: "任务", desc: "Monitor and manage active operations", descZh: "监控和管理活跃操作", icon: ClipboardList, href: "/tasks", stats: "3 Pending" },
-  { id: "octo", title: "Octo-Kinetic", titleZh: "八爪动力", desc: "Neural sync interface with 3D visualization", descZh: "神经同步界面与3D可视化", icon: Zap, href: "/octo", stats: "99.8% Sync" },
-];
+interface AgentInfo {
+  address: string;
+  fee: string;
+  capabilities: string[];
+}
 
-const AGENTS = [
-  { name: "Neural-Alpha-09", status: "Running", desc: "Processing market signals...", active: true },
-  { name: "Sentinel-Shield", status: "Active", desc: "Monitoring node security", active: true },
-  { name: "Data-Miner-X", status: "Idle", desc: "Awaiting task assignment", active: false },
-];
+interface WorkerHealth {
+  status: string;
+  version: string;
+  gateway: string;
+}
 
 function DashboardHome() {
   const { lang } = useLangStore();
+  const [agents, setAgents] = useState<Record<string, AgentInfo>>({});
+  const [health, setHealth] = useState<WorkerHealth | null>(null);
+  const [jobCount, setJobCount] = useState({ total: 0, running: 0 });
+  const [latency, setLatency] = useState<number | null>(null);
+
+  useEffect(() => {
+    const t0 = Date.now();
+    fetch(`${WORKER_URL}/health`)
+      .then(r => r.json())
+      .then((d: WorkerHealth) => {
+        setHealth(d);
+        setLatency(Date.now() - t0);
+      })
+      .catch(() => {});
+
+    fetch(`${WORKER_URL}/api/agents`)
+      .then(r => r.json())
+      .then((d: Record<string, AgentInfo>) => setAgents(d))
+      .catch(() => {});
+
+    try {
+      const jobs: Array<{ status?: string }> = JSON.parse(localStorage.getItem("a2a_jobs") || "[]");
+      setJobCount({ total: jobs.length, running: jobs.filter(j => j.status === "running").length });
+    } catch {}
+  }, []);
+
+  const agentNames = Object.keys(agents);
+  const agentCount = agentNames.length || "—";
+  const nodeOk = health?.status === "ok";
+
+  const MODULES = [
+    { id: "workflows", title: "Workflows", titleZh: "工作流", desc: "Build and deploy automated agent workflows", descZh: "构建和部署自动化智能体工作流", icon: Workflow, href: "/workflows", stats: jobCount.total > 0 ? `${jobCount.total} Jobs` : "Ready" },
+    { id: "market", title: "Agent Market", titleZh: "智能体市场", desc: "Discover and deploy agents from the marketplace", descZh: "从市场发现并部署智能体", icon: ShoppingCart, href: "/market", stats: `${agentCount} Agents` },
+    { id: "teams", title: "Teams", titleZh: "团队", desc: "Hire agent teams for collaborative execution", descZh: "雇用智能体团队进行协作执行", icon: Users, href: "/teams", stats: "3 Teams" },
+    { id: "tasks", title: "Tasks", titleZh: "任务", desc: "Monitor A2A payment workflows and on-chain tasks", descZh: "监控 A2A 支付工作流与链上任务", icon: ClipboardList, href: "/tasks", stats: jobCount.running > 0 ? `${jobCount.running} Running` : "All Clear" },
+  ];
+
+  const AGENT_ROLES: Record<string, { label: string; desc: string }> = {
+    orchestrator: { label: "Orchestrator", desc: "Coordinates A2A payments between agents" },
+    "price-oracle": { label: "Price Oracle", desc: "Fetches live crypto prices from Binance" },
+    "trade-strategy": { label: "Trade Strategy", desc: "Evaluates trade conditions, prepares DEX swaps" },
+  };
 
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Neural Prism v1.0</span>
-            <h1 className="text-4xl lg:text-5xl font-light text-white">
-              {lang === "en" ? "Dashboard" : "仪表盘"}
-            </h1>
+        <div>
+          <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Gradience Network</span>
+          <h1 className="text-4xl lg:text-5xl font-light text-white">
+            {lang === "en" ? "Dashboard" : "仪表盘"}
+          </h1>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Active Agents */}
+          <div className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-xs text-white/40 uppercase tracking-widest">Active Agents</span>
+              <Cpu className="w-5 h-5 text-white/60" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-4xl font-light text-white">{agentCount}</h2>
+              <span className="text-white/40">on-chain</span>
+            </div>
+            <div className="mt-4 text-sm text-white/60">
+              {agentNames.length > 0
+                ? agentNames.join(" · ")
+                : "Connecting..."}
+            </div>
+          </div>
+
+          {/* Node Status */}
+          <div className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-xs text-white/40 uppercase tracking-widest">Node Status</span>
+              <Shield className="w-5 h-5 text-white/60" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-4xl font-light text-white">
+                {health ? (nodeOk ? "ONLINE" : "ERROR") : "—"}
+              </h2>
+            </div>
+            <div className="mt-4 text-sm text-white/60">
+              {latency !== null ? `Latency: ${latency}ms` : "Measuring..."}
+              {health && <span className="ml-2 text-white/40">v{health.version}</span>}
+            </div>
+          </div>
+
+          {/* A2A Jobs */}
+          <div className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-xs text-white/40 uppercase tracking-widest">A2A Workflows</span>
+              <Activity className="w-5 h-5 text-white/60" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-4xl font-light text-white">{jobCount.total}</h2>
+              <span className="text-white/40">total</span>
+            </div>
+            <div className="mt-4 text-sm text-white/60">
+              {jobCount.running > 0
+                ? <><span className="text-white">{jobCount.running}</span> running</>
+                : "No active jobs"}
+            </div>
           </div>
         </div>
 
-        {/* Stats Grid - 黑白极简风格 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {STATS.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.id} className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
-                <div className="flex items-start justify-between mb-4">
-                  <span className="text-xs text-white/40 uppercase tracking-widest">{stat.title}</span>
-                  <Icon className="w-5 h-5 text-white/60" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <h2 className="text-4xl font-light text-white">{stat.value}</h2>
-                  {stat.unit && <span className="text-white/40">{stat.unit}</span>}
-                </div>
-                {stat.change && (
-                  <div className="mt-4 text-sm text-white/60">
-                    <span className="text-white">{stat.change}</span> vs last cycle
-                  </div>
-                )}
-                {stat.latency && (
-                  <div className="mt-4 text-sm text-white/60">
-                    Latency: <span className="text-white">{stat.latency}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Module Grid - 黑白极简风格 */}
+        {/* Module Grid */}
         <div>
           <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] mb-6">Modules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             {MODULES.map((module) => {
               const Icon = module.icon;
               return (
@@ -107,27 +166,34 @@ function DashboardHome() {
           </div>
         </div>
 
-        {/* Agent Pulse - 黑白极简风格 */}
+        {/* Agent Pulse — real agents from /api/agents */}
         <div>
-          <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] mb-6">Agent Pulse</h2>
+          <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] mb-6">Agent Network</h2>
           <div className="border border-white/10 divide-y divide-white/10">
-            {AGENTS.map((agent, index) => (
-              <div key={index} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
-                <div className="w-10 h-10 border border-white/20 flex items-center justify-center">
-                  <Terminal className="w-5 h-5 text-white/60" />
+            {agentNames.length === 0 ? (
+              <div className="p-6 text-white/40 text-sm">Connecting to agent network...</div>
+            ) : agentNames.map((name) => {
+              const agent = agents[name];
+              const role = AGENT_ROLES[name] || { label: name, desc: agent.capabilities.join(", ") };
+              return (
+                <div key={name} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                  <div className="w-10 h-10 border border-white/20 flex items-center justify-center">
+                    <Terminal className="w-5 h-5 text-white/60" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-white">{role.label}</h4>
+                    <p className="text-sm text-white/50 truncate">{role.desc}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-white/40 font-mono truncate max-w-[120px]">
+                      {agent.address.slice(0, 6)}...{agent.address.slice(-4)}
+                    </div>
+                    <div className="text-xs text-white/60 mt-0.5">{agent.fee}</div>
+                  </div>
+                  <span className="w-1.5 h-1.5 bg-white inline-block animate-pulse ml-2" />
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-white">{agent.name}</h4>
-                  <p className="text-sm text-white/50">{agent.desc}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`text-xs uppercase tracking-wider ${agent.active ? 'text-white' : 'text-white/40'}`}>
-                    {agent.status}
-                  </span>
-                  {agent.active && <span className="ml-2 w-1.5 h-1.5 bg-white inline-block animate-pulse" />}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

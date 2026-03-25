@@ -7,6 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 XLAYER_RPC_URL       = "https://xlayertestrpc.okx.com"
 XLAYER_CHAIN_ID      = "195"
 DEMO_MODE            = "true"
+REGISTRY_CONTRACT    = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
 
 # CF AI Gateway — routes to Workers AI (free) by default
 # Developer can change AI_GATEWAY_MODEL to use any CF AI Gateway provider
@@ -17,7 +18,10 @@ AI_GATEWAY_MODEL     = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 # Secrets (set via: npx wrangler secret put <NAME>)
 # CF_GATEWAY_TOKEN  — CF API token (required for AI Gateway)
 # NODE_PRIVATE_KEY  — worker wallet for on-chain signing
+# DOWNLOAD_SECRET   — HMAC secret for signed codegen artifact download URLs
 # COINGECKO_API_KEY — optional
+# UNISWAP_API_KEY   — optional (for Uniswap quote-based price source)
+# UNISWAP_QUOTE_URL — optional override, default https://trade-api.gateway.uniswap.org/v1/quote
 
 # Cloudflare KV
 [[kv_namespaces]]
@@ -37,6 +41,13 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["AgentSession"]
+
+# Cloudflare Workflows — durable multi-step A2A payment execution
+# Each step is atomic: if the worker crashes mid-payment, it resumes from that step
+[[workflows]]
+binding  = "A2A_WORKFLOW"
+name     = "a2a-payment-workflow"
+class_name = "A2APaymentWorkflow"
 
 # Cron — heartbeat every minute
 [triggers]

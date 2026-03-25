@@ -5,9 +5,49 @@
 export const CONTRACTS = {
   taskManager: "0x39223444d2f9a4d6769e91aa7908CB22CA3A8686",
   paymentHub: "0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60",
-  usdc: "0x67d0E8f4Ef68D739893209bA018273a8F5FF845E",
+  usdc: "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
   agentRegistry8004: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
 };
+
+export const USDC_ABI = [
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+];
+
+export const PAYMENT_HUB_ABI = [
+  {
+    inputs: [
+      { internalType: "uint256", name: "taskId", type: "uint256" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      {
+        components: [
+          { internalType: "address", name: "agentOwner", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+          { internalType: "string", name: "description", type: "string" },
+        ],
+        internalType: "struct PaymentHub.PaymentBreakdown[]",
+        name: "breakdown",
+        type: "tuple[]",
+      },
+    ],
+    name: "createEscrow",
+    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "bytes32", name: "escrowId", type: "bytes32" },
+      { indexed: true, internalType: "uint256", name: "taskId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+    ],
+    name: "EscrowCreated",
+    type: "event",
+  },
+];
 
 export const TASK_MANAGER_ABI = [
   {

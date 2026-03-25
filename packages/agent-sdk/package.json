@@ -1,0 +1,26 @@
+{
+  "name": "@gradience/agent-sdk",
+  "version": "0.1.0",
+  "description": "Gradience Agent SDK — extend pi-worker agents with on-chain payments and the decentralized agent economy",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "ethers": "^6.0.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "peerDependencies": {
+    "pi-worker": "*",
+    "pi-coding-agent-worker": "*"
+  },
+  "peerDependenciesMeta": {
+    "pi-worker": { "optional": true },
+    "pi-coding-agent-worker": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

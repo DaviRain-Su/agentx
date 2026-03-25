@@ -4,7 +4,7 @@ import { useWeb3 } from "./Web3Provider";
 import { Zap, Wallet, ExternalLink } from "lucide-react";
 
 export function Navbar() {
-  const { address, isConnected, connect } = useWeb3();
+  const { address, isConnected, connect, chainId, supportedChainId, supportedNetworkName, supportedNativeToken, isSupportedNetwork } = useWeb3();
 
   return (
     <nav className="sticky top-0 z-50 glass-card border-b border-white/5">
@@ -30,7 +30,7 @@ export function Navbar() {
               My Tasks
             </a>
             <a 
-              href="https://www.oklink.com/x-layer-testnet" 
+              href="https://www.okx.com/web3/explorer/xlayer-test" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-sm text-gray-300 hover:text-white transition flex items-center gap-1"
@@ -41,7 +41,21 @@ export function Navbar() {
           </div>
 
           {/* Connect Button */}
-          <div>
+          <div className="flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs">
+              <span className="text-gray-400">Supported:</span>
+              <span className="font-medium">{supportedNetworkName}</span>
+              <span className="text-gray-500">#{supportedChainId}</span>
+              <span className="text-gray-500">{supportedNativeToken}</span>
+            </div>
+            {isConnected && (
+              <div className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${
+                isSupportedNetwork ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+              }`}>
+                <span className="font-medium">Network</span>
+                <span>#{chainId ?? "-"}</span>
+              </div>
+            )}
             {isConnected ? (
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

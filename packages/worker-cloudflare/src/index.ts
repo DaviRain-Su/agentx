@@ -11,12 +11,16 @@
  */
 
 import { ethers } from "ethers";
+import { createDownloadHandler } from "pi-worker";
 import { CloudflareRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from "@gradience/shared-orchestrator";
+import { WorkflowOrchestrator, PriceOracleAgent, TradeStrategyAgent } from "@gradience/agent-sdk";
 import { CONTRACTS } from "./config/contracts";
 import { AgentSession } from "./agents/AgentSession";
+import { A2APaymentWorkflow, type A2AWorkflowParams, type A2AWorkflowResult } from "./workflows/A2APaymentWorkflow";
+import { CodegenWorkflow, type CodegenWorkflowParams, type CodegenWorkflowResult } from "./workflows/CodegenWorkflow";
 
-// Re-export Durable Object for Wrangler binding
-export { AgentSession };
+// Re-export Durable Objects and Workflows for Wrangler bindings
+export { AgentSession, A2APaymentWorkflow, CodegenWorkflow };
 
 export interface Env {
   // Node identity
@@ -36,6 +40,8 @@ export interface Env {
   // External APIs (optional, for providers beyond Workers AI)
   ANTHROPIC_API_KEY?: string;
   COINGECKO_API_KEY?: string;
+  UNISWAP_API_KEY?: string;
+  UNISWAP_QUOTE_URL?: string;
 
   // xurl / workflow storage (optional)
   XURL_API_KEY?: string;
@@ -45,6 +51,12 @@ export interface Env {
   GRADIENCE_KV: KVNamespace;
   AI: Ai;
   AGENT_SESSIONS: DurableObjectNamespace;
+  A2A_WORKFLOW: Workflow<A2AWorkflowParams>;
+  CODEGEN_WORKFLOW: Workflow<CodegenWorkflowParams>;
+  CODEGEN_FILES: R2Bucket;
+  DOWNLOAD_SECRET: string;
+  LOADER?: unknown;
+  OUTBOUND?: Fetcher;
 
   // Feature flags
   DEMO_MODE?: string;
@@ -92,6 +104,108 @@ export default {
     if (url.pathname.startsWith("/agent/clear/") && request.method === "POST") {
       const sessionId = url.pathname.split("/")[3];
       return proxyToSession(request, env, sessionId, "/clear");
+    }
+
+    // ── A2A Workflow Endpoints ────────────────────────────────────────────────
+    // POST /api/a2a  — start a durable A2A payment workflow
+    //   Body: { symbol, budget, callerAddress, type?, condition?, threshold?, riskLevel? }
+    //   Returns: { jobId, status: "running" }
+    //
+    // GET /api/a2a/:jobId — poll workflow status
+    //   Returns: { status: "running"|"completed"|"failed", result? }
+
+    if (url.pathname === "/api/a2a" && request.method === "POST") {
+      return handleStartA2AWorkflow(request, env);
+    }
+
+    const a2aStatusMatch = url.pathname.match(/^\/api\/a2a\/([^/]+)$/);
+    if (a2aStatusMatch && request.method === "GET") {
+      return handleA2AStatus(a2aStatusMatch[1], env);
+    }
+
+    // Legacy simulation endpoint (no callerAddress = demo mode, still sync)
+    if (url.pathname === "/api/a2a/simulate" && request.method === "POST") {
+      return handleA2ASimulate(request, env);
+    }
+
+    // ── CodeFlare Codegen Workflow Endpoints ─────────────────────────────────
+
+    if (url.pathname === "/api/codegen" && request.method === "POST") {
+      return handleStartCodegenWorkflow(request, env);
+    }
+
+    const codegenStatusMatch = url.pathname.match(/^\/api\/codegen\/([^/]+)$/);
+    if (codegenStatusMatch && request.method === "GET") {
+      return handleCodegenStatus(codegenStatusMatch[1], env);
+    }
+
+    if (url.pathname.startsWith("/api/codegen/download/") && request.method === "GET") {
+      return handleCodegenDownload(request, env);
+    }
+
+    // ── Agent Addresses ───────────────────────────────────────────────────────
+    // GET /api/agents — returns derived wallet addresses for all 3 demo agents
+
+    if (url.pathname === "/api/agents" && request.method === "GET") {
+      if (!env.NODE_PRIVATE_KEY) {
+        return Response.json({ error: "NODE_PRIVATE_KEY not set" }, { status: 503, headers: CORS });
+      }
+      // Use agent-sdk as single source of truth for agent info
+      const provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
+      const orchestrator = new WorkflowOrchestrator(env.NODE_PRIVATE_KEY, provider);
+      const priceAgent   = new PriceOracleAgent(env.NODE_PRIVATE_KEY, provider);
+      const tradeAgent   = new TradeStrategyAgent(env.NODE_PRIVATE_KEY, provider);
+
+      const toEntry = (agent: WorkflowOrchestrator | PriceOracleAgent | TradeStrategyAgent) => {
+        const info = agent.getInfo();
+        return { address: info.address, fee: `${info.pricing.perCall} USDC`, capabilities: info.capabilities };
+      };
+
+      return Response.json({
+        "orchestrator":   toEntry(orchestrator),
+        "price-oracle":   toEntry(priceAgent),
+        "trade-strategy": toEntry(tradeAgent),
+      }, { headers: CORS });
+    }
+
+    // ── Agent SDK Deploy ─────────────────────────────────────────────────────
+    // POST /api/deploy — provision an agent session from a template
+
+    if (url.pathname === "/api/deploy" && request.method === "POST") {
+      let body: { template?: string; config?: { name?: string } } = {};
+      try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+      const sessionId = crypto.randomUUID();
+      await env.GRADIENCE_KV.put(
+        `agent_session:${sessionId}`,
+        JSON.stringify({ template: body.template || "orchestrator", config: body.config, createdAt: Date.now() }),
+        { expirationTtl: 86400 }
+      );
+
+      return Response.json({
+        agentId: sessionId,
+        sessionId,
+        template: body.template || "orchestrator",
+        chatUrl: `/agent/chat/${sessionId}`,
+        wsUrl: `/agent/ws/${sessionId}`,
+        status: "deployed",
+      }, { headers: CORS });
+    }
+
+    // ── Human-in-the-Loop Confirm ─────────────────────────────────────────────
+
+    const confirmMatch = url.pathname.match(/^\/tasks\/(\d+)\/confirm$/);
+    if (confirmMatch && request.method === "POST") {
+      const taskId = confirmMatch[1];
+      let body: { approved?: boolean } = {};
+      try { body = await request.json() as typeof body; } catch { /* empty body ok */ }
+      const approved = body.approved !== false; // default true
+      await env.GRADIENCE_KV.put(
+        `human_approval:${taskId}`,
+        JSON.stringify({ approved, ts: Date.now() }),
+        { expirationTtl: 3600 }
+      );
+      return Response.json({ ok: true, taskId, approved }, { headers: CORS });
     }
 
     // ── Health ───────────────────────────────────────────────────────────────
@@ -216,6 +330,217 @@ async function proxyToSession(
   return stub.fetch(new Request(doUrl.toString(), request));
 }
 
+// ─── A2A Workflow Handlers ────────────────────────────────────────────────────
+
+/** POST /api/a2a — launch a durable Cloudflare Workflow for the payment flow */
+async function handleStartA2AWorkflow(request: Request, env: Env): Promise<Response> {
+  if (!env.NODE_PRIVATE_KEY) {
+    return Response.json({ error: "NODE_PRIVATE_KEY not configured" }, { status: 503, headers: CORS });
+  }
+
+  let body: Partial<A2AWorkflowParams> = {};
+  try { body = await request.json() as typeof body; }
+  catch { return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: CORS }); }
+
+  if (!body.callerAddress) {
+    return Response.json(
+      { error: "callerAddress required. For demo without wallet use POST /api/a2a/simulate" },
+      { status: 400, headers: CORS }
+    );
+  }
+
+  const params: A2AWorkflowParams = {
+    symbol:        body.symbol       || "ETH",
+    budget:        body.budget       || 0.01,
+    callerAddress: body.callerAddress,
+    type:          body.type         || "price_only",
+    condition:     body.condition,
+    threshold:     body.threshold,
+    riskLevel:     body.riskLevel    || "medium",
+  };
+
+  const jobId = `a2a_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+
+  try {
+    await env.A2A_WORKFLOW.create({ id: jobId, params });
+  } catch (err) {
+    return Response.json({ error: `Failed to start workflow: ${err}` }, { status: 500, headers: CORS });
+  }
+
+  return Response.json({ jobId, status: "running", pollUrl: `/api/a2a/${jobId}` }, { headers: CORS });
+}
+
+/** GET /api/a2a/:jobId — poll workflow status */
+async function handleA2AStatus(jobId: string, env: Env): Promise<Response> {
+  try {
+    const instance = await env.A2A_WORKFLOW.get(jobId);
+    const info = await instance.status();
+
+    switch (info.status) {
+      case "queued":
+      case "running":
+      case "waiting":
+      case "paused":
+        return Response.json({ jobId, status: "running" }, { headers: CORS });
+
+      case "complete":
+        return Response.json({
+          jobId,
+          status: "completed",
+          result: info.output as A2AWorkflowResult,
+        }, { headers: CORS });
+
+      case "errored":
+      case "terminated":
+        return Response.json({
+          jobId,
+          status: "failed",
+          error: (info as any).error?.message || `Workflow ${info.status}`,
+        }, { headers: CORS });
+
+      default:
+        return Response.json({ jobId, status: "unknown" }, { headers: CORS });
+    }
+  } catch {
+    return Response.json({ error: "Job not found" }, { status: 404, headers: CORS });
+  }
+}
+
+/** POST /api/a2a/simulate — demo mode, no wallet needed, returns mock payment trail */
+async function handleA2ASimulate(request: Request, env: Env): Promise<Response> {
+  let body: { symbol?: string; budget?: number; threshold?: number; condition?: string } = {};
+  try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+  const symbol = (body.symbol || "ETH").toUpperCase();
+  const budget = body.budget || 0.01;
+
+  let price = 0;
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+    if (res.ok) { const d = await res.json() as { price: string }; price = parseFloat(d.price); }
+  } catch { /* ignore */ }
+
+  const threshold = body.threshold || 0;
+  const conditionMet = threshold > 0 ? price > threshold : true;
+
+  const deriveAddress = (name: string) => {
+    if (!env.NODE_PRIVATE_KEY) return `0x${"0".repeat(40)}`;
+    const walletSeed = ethers.keccak256(ethers.toUtf8Bytes(`${env.NODE_PRIVATE_KEY}:${name}`));
+    return new ethers.Wallet(walletSeed).address;
+  };
+
+  return Response.json({
+    status: "simulated",
+    note: "Simulation mode — no real USDC transfers. Use POST /api/a2a with callerAddress for real payments.",
+    symbol,
+    currentPrice: price,
+    conditionMet,
+    action: conditionMet ? "BUY" : "HOLD",
+    agentAddresses: {
+      orchestrator:  deriveAddress("orchestrator"),
+      priceOracle:   deriveAddress("price-oracle"),
+      tradeStrategy: deriveAddress("trade-strategy"),
+    },
+    simulatedPayments: [
+      { step: "User → Orchestrator",            amount: `${budget} USDC` },
+      { step: "Orchestrator → PriceOracleAgent", amount: "0.001 USDC" },
+      conditionMet ? { step: "Orchestrator → TradeStrategyAgent", amount: "0.005 USDC" } : null,
+      { step: "Orchestrator → User (refund)",    amount: `${(budget - 0.001 - (conditionMet ? 0.005 : 0)).toFixed(4)} USDC` },
+    ].filter(Boolean),
+  }, { headers: CORS });
+}
+
+// ─── CodeFlare Workflow Handlers ─────────────────────────────────────────────
+
+/** POST /api/codegen — launch durable code generation workflow */
+async function handleStartCodegenWorkflow(request: Request, env: Env): Promise<Response> {
+  if (!env.CODEGEN_WORKFLOW || !env.CODEGEN_FILES || !env.DOWNLOAD_SECRET) {
+    return Response.json({ error: "Codegen workflow bindings are not configured" }, { status: 503, headers: CORS });
+  }
+
+  let body: Partial<CodegenWorkflowParams> = {};
+  try { body = await request.json() as typeof body; }
+  catch { return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: CORS }); }
+
+  const prompt = body.prompt?.trim();
+  if (!prompt) {
+    return Response.json({ error: "prompt is required" }, { status: 400, headers: CORS });
+  }
+
+  const params: CodegenWorkflowParams = {
+    prompt,
+    language: body.language || "typescript",
+    target: body.target || "cloudflare-worker",
+  };
+  const jobId = `codegen_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+
+  try {
+    await env.CODEGEN_WORKFLOW.create({
+      id: jobId,
+      params,
+      retention: {
+        successRetention: "1 day",
+        errorRetention: "1 day",
+      },
+    });
+  } catch (err) {
+    return Response.json({ error: `Failed to start codegen workflow: ${err}` }, { status: 500, headers: CORS });
+  }
+
+  return Response.json({
+    jobId,
+    status: "running",
+    pollUrl: `/api/codegen/${jobId}`,
+  }, { headers: CORS });
+}
+
+/** GET /api/codegen/:jobId — poll code generation workflow status */
+async function handleCodegenStatus(jobId: string, env: Env): Promise<Response> {
+  try {
+    const instance = await env.CODEGEN_WORKFLOW.get(jobId);
+    const info = await instance.status();
+
+    switch (info.status) {
+      case "queued":
+      case "running":
+      case "waiting":
+      case "waitingForPause":
+      case "paused":
+        return Response.json({ jobId, status: "running" }, { headers: CORS });
+
+      case "complete":
+        return Response.json({
+          jobId,
+          status: "completed",
+          result: info.output as CodegenWorkflowResult,
+        }, { headers: CORS });
+
+      case "errored":
+      case "terminated":
+        return Response.json({
+          jobId,
+          status: "failed",
+          error: (info as any).error?.message || `Workflow ${info.status}`,
+        }, { headers: CORS });
+
+      default:
+        return Response.json({ jobId, status: "unknown" }, { headers: CORS });
+    }
+  } catch {
+    return Response.json({ error: "Job not found" }, { status: 404, headers: CORS });
+  }
+}
+
+/** GET /api/codegen/download/:key?sig=... — serve signed artifact downloads */
+async function handleCodegenDownload(request: Request, env: Env): Promise<Response> {
+  if (!env.CODEGEN_FILES || !env.DOWNLOAD_SECRET) {
+    return Response.json({ error: "Codegen download bindings are not configured" }, { status: 503, headers: CORS });
+  }
+  const downloads = createDownloadHandler(env.CODEGEN_FILES, env.DOWNLOAD_SECRET, "/api/codegen/download/");
+  const served = await downloads.serve(request);
+  return served || Response.json({ error: "Invalid or expired download URL" }, { status: 404, headers: CORS });
+}
+
 // ─── ExecutionNode Init ───────────────────────────────────────────────────────
 
 async function initializeNode(env: Env): Promise<ExecutionNode> {
@@ -243,6 +568,7 @@ async function initializeNode(env: Env): Promise<ExecutionNode> {
     allowedHosts: [
       "api.coingecko.com",
       "api.binance.com",
+      "trade-api.gateway.uniswap.org",
       "gateway.ai.cloudflare.com",
       "xlayertestrpc.okx.com",
     ],
