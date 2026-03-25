@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { ArrowLeft, BookOpen } from "lucide-react";
 
 const DOCS_NAV = [
   {
@@ -32,11 +32,23 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
 
   return (
-    <DashboardLayout>
-      <div className="max-w-7xl mx-auto flex gap-10">
-        {/* Docs sidebar */}
-        <aside className="w-52 shrink-0">
-          <div className="sticky top-8 space-y-6">
+    <div className="min-h-screen bg-[#020202] text-white">
+      <header className="border-b border-white/10 bg-[#020202]/90 backdrop-blur-sm sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-white/70" />
+            <span className="tracking-wider text-sm text-white/90">GRADIENCE DOCS</span>
+          </div>
+          <Link href="/" className="text-sm text-white/60 hover:text-white transition inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-10 flex gap-10">
+        <aside className="w-56 shrink-0">
+          <div className="sticky top-24 space-y-6">
             {DOCS_NAV.map((group) => (
               <div key={group.section}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-2">{group.section}</p>
@@ -67,12 +79,8 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             ))}
           </div>
         </aside>
-
-        {/* Docs content */}
-        <div className="flex-1 min-w-0 max-w-3xl">
-          {children}
-        </div>
-      </div>
-    </DashboardLayout>
+        <div className="flex-1 min-w-0 max-w-3xl">{children}</div>
+      </main>
+    </div>
   );
 }

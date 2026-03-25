@@ -7,41 +7,26 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import Link from "next/link";
 import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen } from "lucide-react";
 import { useLangStore } from "@/store/lang";
-
-const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://gradience-worker.davirain-yin.workers.dev";
-
-interface AgentInfo {
-  address: string;
-  fee: string;
-  capabilities: string[];
-}
-
-interface WorkerHealth {
-  status: string;
-  version: string;
-  gateway: string;
-}
+import { workerApi, type WorkerAgentEntry, type WorkerHealth } from "@/lib/api/worker";
 
 function DashboardHome() {
   const { lang } = useLangStore();
-  const [agents, setAgents] = useState<Record<string, AgentInfo>>({});
+  const [agents, setAgents] = useState<Record<string, WorkerAgentEntry>>({});
   const [health, setHealth] = useState<WorkerHealth | null>(null);
   const [jobCount, setJobCount] = useState({ total: 0, running: 0 });
   const [latency, setLatency] = useState<number | null>(null);
 
   useEffect(() => {
     const t0 = Date.now();
-    fetch(`${WORKER_URL}/health`)
-      .then(r => r.json())
+    workerApi.getHealth()
       .then((d: WorkerHealth) => {
         setHealth(d);
         setLatency(Date.now() - t0);
       })
       .catch(() => {});
 
-    fetch(`${WORKER_URL}/api/agents`)
-      .then(r => r.json())
-      .then((d: Record<string, AgentInfo>) => setAgents(d))
+    workerApi.getAgents()
+      .then((d: Record<string, WorkerAgentEntry>) => setAgents(d))
       .catch(() => {});
 
     try {
@@ -175,7 +160,7 @@ function DashboardHome() {
               <div className="p-6 text-white/40 text-sm">Connecting to agent network...</div>
             ) : agentNames.map((name) => {
               const agent = agents[name];
-              const role = AGENT_ROLES[name] || { label: name, desc: agent.capabilities.join(", ") };
+              const role = AGENT_ROLES[name] || { label: name, desc: (agent.capabilities || []).join(", ") };
               return (
                 <div key={name} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
                   <div className="w-10 h-10 border border-white/20 flex items-center justify-center">

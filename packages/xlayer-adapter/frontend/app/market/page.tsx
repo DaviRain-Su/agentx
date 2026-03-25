@@ -7,8 +7,8 @@ import { useWeb3 } from "@/components/Web3Provider";
 import { useLangStore } from "@/store/lang";
 import { Search, Zap, Plus, X, Loader2, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { ethers } from "ethers";
+import { workerApi } from "@/lib/api/worker";
 
-const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://gradience-worker.davirain-yin.workers.dev";
 const XLAYER_RPC = "https://xlayertestrpc.okx.com";
 
 const CATEGORIES = ["All", "DeFi", "AI", "Security", "Analytics", "Trading", "Oracle", "Network"];
@@ -76,28 +76,26 @@ function useMarketAgents() {
 
     // 1. Worker /api/agents — live network agents
     try {
-      const res = await fetch(`${WORKER_URL}/api/agents`);
-      if (res.ok) {
-        const data = await res.json() as Record<string, { address: string; fee: string; capabilities: string[] }>;
-        for (const [name, info] of Object.entries(data)) {
-          const meta = WORKER_AGENT_META[name] || {
-            subtitle: info.capabilities.join(", "),
-            description: `On-chain agent with capabilities: ${info.capabilities.join(", ")}`,
-            category: capToCategory(info.capabilities),
-          };
-          results.push({
-            id: `worker_${name}`,
-            name,
-            subtitle: meta.subtitle,
-            description: meta.description,
-            price: info.fee || "—",
-            category: meta.category,
-            featured: meta.featured,
-            address: info.address,
-            source: "worker",
-            capabilities: info.capabilities,
-          });
-        }
+      const data = await workerApi.getAgents();
+      for (const [name, info] of Object.entries(data)) {
+        const capabilities = info.capabilities || [];
+        const meta = WORKER_AGENT_META[name] || {
+          subtitle: capabilities.join(", "),
+          description: `On-chain agent with capabilities: ${capabilities.join(", ")}`,
+          category: capToCategory(capabilities),
+        };
+        results.push({
+          id: `worker_${name}`,
+          name,
+          subtitle: meta.subtitle,
+          description: meta.description,
+          price: info.fee || "—",
+          category: meta.category,
+          featured: meta.featured,
+          address: info.address,
+          source: "worker",
+          capabilities,
+        });
       }
     } catch { /* Worker offline — skip */ }
 
@@ -188,6 +186,10 @@ function PublishModal({ onClose }: { onClose: () => void }) {
   const handlePublish = async () => {
     if (!name.trim() || selectedCaps.length === 0) {
       setErrorMsg("Agent name and at least one capability are required.");
+      return;
+    }
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name.trim())) {
+      setErrorMsg("Agent name must start with a letter or underscore, and contain only letters, digits, and underscores (no hyphens or spaces).");
       return;
     }
     if (!provider) {
@@ -291,9 +293,10 @@ function PublishModal({ onClose }: { onClose: () => void }) {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. my-quant-agent"
+                placeholder="e.g. my_quant_agent"
                 className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-white/40 transition text-sm"
               />
+              <p className="text-xs text-white/30 mt-1">Letters, digits, and underscores only — no hyphens or spaces</p>
             </div>
 
             {/* Endpoint */}

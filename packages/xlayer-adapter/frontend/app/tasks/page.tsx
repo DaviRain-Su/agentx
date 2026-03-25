@@ -19,6 +19,7 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
+import { workerApi, type A2AStatusResponse } from "@/lib/api/worker";
 
 // ─── A2A Job types ────────────────────────────────────────────────────────────
 
@@ -113,20 +114,7 @@ export default function TasksPage() {
     const updated = await Promise.all(
       recent.map(async ({ jobId, symbol, createdAt }) => {
         try {
-          const res = await fetch(`${workerBase}/api/a2a/${jobId}`);
-          if (!res.ok) return { jobId, symbol, createdAt, status: "unknown" as const };
-          const data = await res.json() as {
-            status?: string;
-            result?: {
-              status?: string;
-              currentPrice?: number;
-              priceSource?: string;
-              action?: "BUY" | "SELL" | "HOLD";
-              payments?: PaymentRecord[];
-              totalSpent?: string;
-              refunded?: string;
-            };
-          };
+          const data = await workerApi.getA2AStatus(jobId, workerBase) as A2AStatusResponse;
 
           const cfStatus = data.status; // "running" | "complete" | "errored" | "paused" | "waiting"
           const result = data.result;
@@ -258,12 +246,7 @@ export default function TasksPage() {
   const handleConfirm = async (taskId: string, approved: boolean) => {
     setTxPending(true);
     try {
-      const res = await fetch(`${workerBase}/tasks/${taskId}/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved }),
-      });
-      if (!res.ok) throw new Error(`Worker responded ${res.status}`);
+      await workerApi.confirmTask(taskId, approved, workerBase);
 
       // Remove from pending list immediately for responsive UI
       setPendingConfirmations(prev => prev.filter(c => c.taskId !== taskId));

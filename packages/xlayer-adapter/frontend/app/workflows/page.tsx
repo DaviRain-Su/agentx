@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ethers } from "ethers";
 import { Workflow as WorkflowIcon, Play, ChevronRight, CheckCircle, Clock, AlertCircle, Loader2, Plus, X, Terminal } from "lucide-react";
 import Link from "next/link";
+import { workerApi, type WorkerAgentEntry, type A2ASimulateResponse } from "@/lib/api/worker";
 
 // Workflow templates stored in frontend (could be moved to IPFS/chain later)
 const WORKFLOW_TEMPLATES = [
@@ -99,20 +100,6 @@ interface SimulatedPayment {
   amount: string;
 }
 
-interface SimulatedA2AResponse {
-  status: "simulated";
-  symbol: string;
-  currentPrice: number;
-  action: "BUY" | "HOLD";
-  simulatedPayments: SimulatedPayment[];
-}
-
-interface AgentAddressEntry {
-  address: string;
-  fee?: string;
-  capabilities?: string[];
-}
-
 interface CreateWorkflowModalProps {
   workerBase: string;
   lang: string;
@@ -121,7 +108,7 @@ interface CreateWorkflowModalProps {
 }
 
 function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWorkflowModalProps) {
-  const [agents, setAgents] = useState<Record<string, AgentAddressEntry>>({});
+  const [agents, setAgents] = useState<Record<string, WorkerAgentEntry>>({});
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [goal, setGoal] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
@@ -129,9 +116,8 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`${workerBase}/api/agents`)
-      .then(r => r.json())
-      .then((d: Record<string, AgentAddressEntry>) => { setAgents(d); setLoadingAgents(false); })
+    workerApi.getAgents(workerBase)
+      .then((d) => { setAgents(d); setLoadingAgents(false); })
       .catch(() => setLoadingAgents(false));
   }, [workerBase]);
 
@@ -389,11 +375,7 @@ export default function WorkflowsPage() {
     userAddress: string,
     budget: string
   ) => {
-    const agentRes = await fetch(`${workerBase}/api/agents`);
-    if (!agentRes.ok) {
-      throw new Error(`Failed to fetch orchestrator address (${agentRes.status})`);
-    }
-    const agents = await agentRes.json() as Record<string, AgentAddressEntry>;
+    const agents = await workerApi.getAgents(workerBase);
     const orchestratorAddress = agents?.orchestrator?.address;
     if (!orchestratorAddress || !ethers.isAddress(orchestratorAddress)) {
       throw new Error("Invalid orchestrator address from worker");
@@ -410,7 +392,7 @@ export default function WorkflowsPage() {
   const saveSimulatedA2AJob = (
     workflow: typeof WORKFLOW_TEMPLATES[number],
     budget: string,
-    simulation: SimulatedA2AResponse
+    simulation: A2ASimulateResponse
   ) => {
     if (typeof window === "undefined") return;
     const jobId = `sim_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
@@ -443,20 +425,12 @@ export default function WorkflowsPage() {
     type: string,
     threshold: number
   ) => {
-    const simulateRes = await fetch(`${workerBase}/api/a2a/simulate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        symbol,
-        budget: parseFloat(budget),
-        type,
-        threshold,
-      }),
-    });
-    if (!simulateRes.ok) {
-      throw new Error(`Demo simulation failed (${simulateRes.status})`);
-    }
-    const simulation = await simulateRes.json() as SimulatedA2AResponse;
+    const simulation = await workerApi.simulateA2A({
+      symbol,
+      budget: parseFloat(budget),
+      type,
+      threshold,
+    }, workerBase);
     const simId = saveSimulatedA2AJob(workflow, budget, simulation) || "simulated";
     setCreatedTaskId(simId);
     router.push("/tasks");
@@ -531,25 +505,15 @@ export default function WorkflowsPage() {
       // 6. Also trigger A2A Workflow for real-time payment tracking
       try {
         await ensureA2AAllowance(token, userAddress, effectiveBudget);
-        const a2aRes = await fetch(`${workerBase}/api/a2a`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            symbol,
-            budget: parseFloat(effectiveBudget),
-            callerAddress: userAddress,
-            type: a2aType,
-            threshold,
-          }),
-        });
-        if (a2aRes.ok) {
-          const data = await a2aRes.json() as { jobId?: string };
-          if (data.jobId) {
-            saveA2AJob({ jobId: data.jobId, symbol, createdAt: Date.now() });
-          }
-        } else {
-          const payload = await a2aRes.json().catch(() => ({})) as { error?: string };
-          throw new Error(payload.error || `A2A workflow start failed (${a2aRes.status})`);
+        const data = await workerApi.startA2A({
+          symbol,
+          budget: parseFloat(effectiveBudget),
+          callerAddress: userAddress,
+          type: a2aType,
+          threshold,
+        }, workerBase);
+        if (data.jobId) {
+          saveA2AJob({ jobId: data.jobId, symbol, createdAt: Date.now() });
         }
       } catch (err) {
         console.error("A2A workflow trigger failed:", err);
@@ -590,43 +554,31 @@ export default function WorkflowsPage() {
     };
     const jobId = `sim_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
     try {
-      const res = await fetch(`${workerBase}/api/a2a/simulate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol, budget: parseFloat(budget), type: "price_only", threshold: 0 }),
-      });
-      if (res.ok) {
-        const simulation = await res.json() as SimulatedA2AResponse;
-        const simulatedJob = {
-          jobId,
-          source: "simulated" as const,
-          symbol: simulation.symbol,
-          createdAt: Date.now(),
-          status: "completed" as const,
-          currentPrice: simulation.currentPrice,
-          priceSource: "simulation",
-          action: simulation.action,
-          totalSpent: budget,
-          payments: simulation.simulatedPayments.map((p, index) => ({
-            step: p.step,
-            amount: p.amount,
-            blockNumber: index + 1,
-          })),
-          workflowName: syntheticWorkflow.name,
-          agents: agentNames,
-          goal,
-        };
-        const existing = JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
-        localStorage.setItem("a2a_simulated_jobs", JSON.stringify([simulatedJob, ...existing].slice(0, 20)));
-      } else {
-        // Save minimal job entry even if simulate fails
-        const existing = JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
-        localStorage.setItem("a2a_simulated_jobs", JSON.stringify([{
-          jobId, source: "simulated", symbol, createdAt: Date.now(),
-          status: "completed", workflowName: syntheticWorkflow.name, agents: agentNames, goal,
-          payments: [], totalSpent: budget,
-        }, ...existing].slice(0, 20)));
-      }
+      const simulation = await workerApi.simulateA2A(
+        { symbol, budget: parseFloat(budget), type: "price_only", threshold: 0 },
+        workerBase
+      );
+      const simulatedJob = {
+        jobId,
+        source: "simulated" as const,
+        symbol: simulation.symbol,
+        createdAt: Date.now(),
+        status: "completed" as const,
+        currentPrice: simulation.currentPrice,
+        priceSource: "simulation",
+        action: simulation.action,
+        totalSpent: budget,
+        payments: simulation.simulatedPayments.map((p, index) => ({
+          step: p.step,
+          amount: p.amount,
+          blockNumber: index + 1,
+        })),
+        workflowName: syntheticWorkflow.name,
+        agents: agentNames,
+        goal,
+      };
+      const existing = JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
+      localStorage.setItem("a2a_simulated_jobs", JSON.stringify([simulatedJob, ...existing].slice(0, 20)));
     } catch {
       const existing = JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
       localStorage.setItem("a2a_simulated_jobs", JSON.stringify([{

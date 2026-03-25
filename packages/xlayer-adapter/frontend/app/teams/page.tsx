@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { useLangStore } from "@/store/lang";
 import { useAppSettingsStore } from "@/store/settings";
 import { Plus, Send, Users, Loader2, Star, DollarSign, MessageSquare } from "lucide-react";
+import { workerApi } from "@/lib/api/worker";
 
 // ─── Demo teams (hardcoded — TeamRegistry contract not deployed) ───────────────
 
@@ -76,14 +77,10 @@ export default function TeamsPage() {
   const handleHireTeam = async (team: typeof DEMO_TEAMS[0]) => {
     setIsHiring(team.id);
     try {
-      const res = await fetch(`${workerBase}/api/deploy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template: team.template, config: { name: team.name, model: agentModel } }),
-      });
-
-      if (!res.ok) throw new Error(`Deploy failed: ${res.status}`);
-      const data = await res.json() as { sessionId: string };
+      const data = await workerApi.deploySession(
+        { template: team.template, config: { name: team.name, model: agentModel } },
+        workerBase
+      );
 
       setActiveSession({ teamId: team.id, sessionId: data.sessionId });
       setMessages([
@@ -126,14 +123,7 @@ export default function TeamsPage() {
     setIsSending(true);
 
     try {
-      const res = await fetch(`${workerBase}/agent/chat/${activeSession.sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: inputText }),
-      });
-
-      if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
-      const data = await res.json() as { response: string };
+      const data = await workerApi.chat(activeSession.sessionId, inputText, workerBase);
 
       setMessages(prev => [...prev, {
         id: `agent-${Date.now()}`,

@@ -12,6 +12,8 @@ import {
   ShoppingCart, 
   Shield, 
   Zap,
+  BookOpen,
+  FileText,
   ChevronRight,
   ArrowRight
 } from "lucide-react";
@@ -195,6 +197,9 @@ export function LandingPage() {
             <a href="#how-it-works" className="text-sm text-white/60 hover:text-white transition">
               {lang === 'en' ? 'How it Works' : '工作原理'}
             </a>
+            <Link href="/docs" className="text-sm text-white/60 hover:text-white transition">
+              {lang === 'en' ? 'Docs' : '文档'}
+            </Link>
             <button
               onClick={toggleLang}
               className="text-sm text-white/60 hover:text-white transition"
@@ -350,6 +355,46 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Docs Section */}
+      <section className="relative z-10 py-24 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between mb-10 gap-4">
+            <div>
+              <h2 className="text-3xl lg:text-4xl font-light mb-3">
+                {lang === 'en' ? 'Documentation' : '文档中心'}
+              </h2>
+              <p className="text-white/60">
+                {lang === 'en'
+                  ? 'Architecture, workflow, API and AI-agent onboarding docs are now available in-app.'
+                  : '架构、工作流、API 与 AI Agent 接入文档现已在站内可用。'}
+              </p>
+            </div>
+            <Link href="/docs" className="text-sm text-white/70 hover:text-white transition flex items-center gap-2">
+              {lang === 'en' ? 'Open Docs' : '打开文档'}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/docs/usage" className="border border-white/10 hover:border-white/30 transition p-5 bg-white/5">
+              <BookOpen className="w-5 h-5 text-white/70 mb-3" />
+              <h3 className="text-lg mb-1">{lang === 'en' ? 'Quick Start' : '快速开始'}</h3>
+              <p className="text-sm text-white/50">{lang === 'en' ? '5-step onboarding flow' : '5 步上手流程'}</p>
+            </Link>
+            <Link href="/docs/workflows" className="border border-white/10 hover:border-white/30 transition p-5 bg-white/5">
+              <Workflow className="w-5 h-5 text-white/70 mb-3" />
+              <h3 className="text-lg mb-1">{lang === 'en' ? 'Workflows' : '工作流'}</h3>
+              <p className="text-sm text-white/50">{lang === 'en' ? 'Templates, budgets, A2A and HITL' : '模板、预算、A2A 与人工审批'}</p>
+            </Link>
+            <a href="/llm.txt" target="_blank" rel="noreferrer" className="border border-white/10 hover:border-white/30 transition p-5 bg-white/5">
+              <FileText className="w-5 h-5 text-white/70 mb-3" />
+              <h3 className="text-lg mb-1">llm.txt</h3>
+              <p className="text-sm text-white/50">{lang === 'en' ? 'Machine-readable network spec for AI agents' : '面向 AI Agent 的机器可读网络规范'}</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Highlights */}
       <section className="relative z-10 py-20 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-6">
@@ -398,7 +443,7 @@ export function LandingPage() {
           </div>
           <div className="flex gap-6 text-sm text-white/40">
             <a href="#" className="hover:text-white transition">GitHub</a>
-            <a href="#" className="hover:text-white transition">Docs</a>
+            <Link href="/docs" className="hover:text-white transition">Docs</Link>
             <a href="#" className="hover:text-white transition">Twitter</a>
           </div>
         </div>
