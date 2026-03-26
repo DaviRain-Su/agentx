@@ -164,8 +164,6 @@ export function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const { openWalletModal } = useWeb3();
-
   if (isConnected) return null;
 
   return (
