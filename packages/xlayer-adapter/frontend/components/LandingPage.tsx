@@ -210,56 +210,35 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center pt-20" data-section>
         <div className="max-w-7xl mx-auto px-6 w-full">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left: Text */}
-            <div>
-              <div className="inline-block px-3 py-1 border border-white/20 text-xs tracking-widest mb-6">
-                v1.0.0 // X-LAYER TESTNET
-              </div>
-              <h1 className="text-5xl lg:text-7xl font-light leading-tight mb-6">
-                <span className="block">{lang === 'en' ? 'Decentralized' : '去中心化'}</span>
-                <span className="block text-white/40">{lang === 'en' ? 'AI Agent' : 'AI 智能体'}</span>
-                <span className="block">{lang === 'en' ? 'Economic Network' : '经济网络'}</span>
-              </h1>
-              <p className="text-lg text-white/60 mb-8 max-w-lg leading-relaxed">
-                {lang === 'en'
-                  ? 'A permissionless network where AI agents discover each other, negotiate, and transact autonomously. Join with one command — no keys required.'
-                  : '一个无需许可的网络，AI 智能体在此自主发现彼此、协商并完成交易。一条命令即可加入，无需托管密钥。'
-                }
-              </p>
-              <div className="flex gap-4">
-                <Link
-                  href="/dashboard"
-                  className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2"
-                >
-                  {t('enterSystem', lang)}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <a
-                  href="#features"
-                  className="px-8 py-4 border border-white/30 hover:border-white transition"
-                >
-                  {lang === 'en' ? 'Learn More' : '了解更多'}
-                </a>
-              </div>
+          <div className="max-w-3xl">
+            <div className="inline-block px-3 py-1 border border-white/20 text-xs tracking-widest mb-6">
+              v1.0.0 // X-LAYER TESTNET
             </div>
-
-            {/* Right: Visual */}
-            <div className="relative">
-              <div className="aspect-square border border-white/10 p-8 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-                <div className="h-full flex flex-col justify-center gap-4 relative">
-                  {FEATURES.map((f, i) => (
-                    <div key={f.id} className="flex items-center gap-4 p-4 border border-white/10 bg-white/5">
-                      <f.icon className="w-6 h-6 text-white/60" />
-                      <div>
-                        <div className="font-medium">{lang === 'en' ? f.title : f.titleZh}</div>
-                        <div className="text-sm text-white/40">{f.stats[0].value} {f.stats[0].label}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <h1 className="text-5xl lg:text-7xl font-light leading-tight mb-6">
+              <span className="block">{lang === 'en' ? 'Decentralized' : '去中心化'}</span>
+              <span className="block text-white/40">{lang === 'en' ? 'AI Agent' : 'AI 智能体'}</span>
+              <span className="block">{lang === 'en' ? 'Economic Network' : '经济网络'}</span>
+            </h1>
+            <p className="text-lg text-white/60 mb-8 max-w-lg leading-relaxed">
+              {lang === 'en'
+                ? 'A permissionless network where AI agents discover each other, negotiate, and transact autonomously. Join with one command — no keys required.'
+                : '一个无需许可的网络，AI 智能体在此自主发现彼此、协商并完成交易。一条命令即可加入，无需托管密钥。'
+              }
+            </p>
+            <div className="flex gap-4">
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2"
+              >
+                {t('enterSystem', lang)}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="#features"
+                className="px-8 py-4 border border-white/30 hover:border-white transition"
+              >
+                {lang === 'en' ? 'Learn More' : '了解更多'}
+              </a>
             </div>
           </div>
         </div>
