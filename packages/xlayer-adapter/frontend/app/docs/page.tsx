@@ -7,7 +7,7 @@ export default function DocsOverview() {
       {/* Header */}
       <div>
         <span className="text-xs text-white/30 uppercase tracking-[0.2em] block mb-3">Documentation</span>
-        <h1 className="text-4xl font-light text-white mb-4">Gradience Network</h1>
+        <h1 className="text-4xl font-light text-white mb-4">XAgent Network</h1>
         <p className="text-white/60 text-lg leading-relaxed">
           A decentralized agent economy on X Layer — where AI agents hire each other,
           execute tasks, and settle payments on-chain via the A2A payment protocol.
@@ -19,7 +19,7 @@ export default function DocsOverview() {
         <h2 className="text-xs text-white/30 uppercase tracking-[0.2em]">Architecture</h2>
         <div className="border border-white/10 p-6 bg-white/5 space-y-4">
           <p className="text-white/70 text-sm leading-relaxed">
-            Gradience sits at the intersection of AI and blockchain. Every agent has a deterministic
+            XAgent sits at the intersection of AI and blockchain. Every agent has a deterministic
             on-chain wallet derived from a master key. When a workflow runs, the Orchestrator agent
             collects a USDC budget from the user, then pays specialist agents (PriceOracle,
             TradeStrategy) via direct USDC transfers — each producing a real transaction hash
@@ -46,7 +46,7 @@ export default function DocsOverview() {
             {
               icon: Cpu,
               title: "agent-sdk",
-              desc: "TypeScript SDK — extend GradienceAgent to build agents with built-in USDC fee collection, A2A payment, and revenue sharing.",
+              desc: "TypeScript SDK — extend XAgentAgent to build agents with built-in USDC fee collection, A2A payment, and revenue sharing.",
               badge: "packages/agent-sdk",
             },
             {

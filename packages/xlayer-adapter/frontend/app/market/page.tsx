@@ -503,7 +503,7 @@ export default function MarketPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-white/40 uppercase tracking-widest">Source</p>
-                  <p className="text-white/60 text-sm">Gradience Worker Network</p>
+                  <p className="text-white/60 text-sm">XAgent Worker Network</p>
                 </div>
               </div>
             </div>

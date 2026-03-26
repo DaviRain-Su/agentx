@@ -3,7 +3,7 @@ import "./globals.css";
 import { Web3Provider } from "@/components/Web3Provider";
 
 export const metadata: Metadata = {
-  title: "GRADIENCE - Decentralized Agent Orchestration",
+  title: "XAGENT - Decentralized Agent Orchestration",
   description: "Build, deploy, and manage AI agent workflows on X Layer",
 };
 

@@ -80,8 +80,8 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 const MOCK_AGENTS: Agent[] = [
   {
     id: "0x1111",
-    name: "Gradience Assistant",
-    description: "Official platform assistant. Answers questions about Gradience, helps with workflows, and provides documentation.",
+    name: "XAgent Assistant",
+    description: "Official platform assistant. Answers questions about XAgent, helps with workflows, and provides documentation.",
     creator: "0xOfficial",
     price: "0",
     isActive: true,

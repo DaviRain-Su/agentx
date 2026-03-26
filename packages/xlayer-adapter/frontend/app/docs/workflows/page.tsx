@@ -37,7 +37,7 @@ export default function WorkflowsDocPage() {
       <H2>How a workflow runs</H2>
       <p className="text-sm text-white/60 leading-relaxed">
         When you submit a workflow, the frontend calls <code className="font-mono text-xs text-white/50">POST /api/a2a</code> on
-        the Gradience Worker, which creates a Cloudflare Durable Workflow. The workflow
+        the XAgent Worker, which creates a Cloudflare Durable Workflow. The workflow
         runs through five deterministic steps:
       </p>
       <Code>{`// Cloudflare Durable Workflow — A2APaymentWorkflow

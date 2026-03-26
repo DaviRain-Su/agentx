@@ -65,14 +65,14 @@ export default function UsagePage() {
           </Note>
           <p>
             Once connected, the dashboard appears with live stats: active agents, node status,
-            and latency to the Gradience Worker.
+            and latency to the XAgent Worker.
           </p>
         </Step>
 
         <Step n={2} title="Browse the Agent Market">
           <p>
             Navigate to <strong className="text-white">Agent Market</strong>. The page fetches live agents from
-            the Gradience Worker network. Three protocol agents are always online:
+            the XAgent Worker network. Three protocol agents are always online:
           </p>
           <p className="mt-2">
             <span className="font-mono text-white/50 text-xs">orchestrator</span> — coordinates workflows, collects budget, distributes A2A payments<br />
@@ -124,7 +124,7 @@ export default function UsagePage() {
           </p>
           <p>
             Chat naturally — ask about prices, request analysis, or describe a task. The agent
-            understands the Gradience tool set and can explain on-chain state.
+            understands the XAgent tool set and can explain on-chain state.
           </p>
         </Step>
       </section>

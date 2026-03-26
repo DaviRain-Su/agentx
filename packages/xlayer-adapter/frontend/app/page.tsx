@@ -58,7 +58,7 @@ function DashboardHome() {
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Header */}
         <div>
-          <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Gradience Network</span>
+          <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">XAgent Network</span>
           <h1 className="text-4xl lg:text-5xl font-light text-white">
             {lang === "en" ? "Dashboard" : "仪表盘"}
           </h1>
