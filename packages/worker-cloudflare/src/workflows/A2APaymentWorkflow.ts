@@ -1,18 +1,15 @@
 /**
  * A2APaymentWorkflow — Cloudflare Workflow for atomic A2A payment execution.
  *
- * Uses @agentx/agent-sdk as the single source of truth for agent logic,
- * wallet derivation, USDC payments, and price/strategy analysis.
+ * Uses native OKB (X Layer gas token) for all payments — no ERC-20 approve needed.
  *
  * Steps:
  *   1. validate     — derive agent addresses via SDK
- *   2. collect      — orchestrator.collectFee(caller → orchestrator)
- *   3. price_query  — orchestrator.payAgent(→ priceOracle) + priceAgent.getPriceDirect()
- *   4. strategy     — (conditional) orchestrator.payAgent(→ tradeStrategy) + tradeAgent.analyzeStrategyDirect()
- *   5. refund       — orchestrator.refundAll(→ caller)
+ *   2. price_query  — orchestrator.payAgent(→ priceOracle, 0.001 OKB) + fetch price
+ *   3. strategy     — (conditional) orchestrator.payAgent(→ tradeStrategy, 0.005 OKB) + analyze
+ *   4. refund       — orchestrator sends remaining OKB back to caller
  *
- * Each step is retried independently by Cloudflare on failure — no double-spend,
- * no lost funds.
+ * Each step is retried independently by Cloudflare on failure.
  */
 
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
@@ -83,12 +80,17 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
     const addresses: WalletAddresses = await step.do("validate", async () => {
       if (!this.env.NODE_PRIVATE_KEY) throw new Error("NODE_PRIVATE_KEY not configured");
       if (!params.callerAddress) throw new Error("callerAddress is required");
-      if (!params.budget || params.budget <= 0) throw new Error("budget must be > 0");
 
       const provider = new ethers.JsonRpcProvider(this.env.XLAYER_RPC_URL);
       const orchestrator = new WorkflowOrchestrator(this.env.NODE_PRIVATE_KEY, provider);
       const priceAgent   = new PriceOracleAgent(this.env.NODE_PRIVATE_KEY, provider);
       const tradeAgent   = new TradeStrategyAgent(this.env.NODE_PRIVATE_KEY, provider);
+
+      // Verify orchestrator has enough OKB
+      const balance = await orchestrator.getBalance();
+      if (parseFloat(balance) < 0.02) {
+        throw new Error(`Orchestrator OKB balance too low: ${balance}. Need at least 0.02 OKB`);
+      }
 
       return {
         orchestrator:  orchestrator.getAddress(),
@@ -97,30 +99,7 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
       };
     });
 
-    // ── Step 2: Collect budget from caller via SDK ────────────────────────────
-    const collectResult = await step.do(
-      "collect_budget",
-      { retries: { limit: 2, delay: "5 seconds" } },
-      async () => {
-        const provider = new ethers.JsonRpcProvider(this.env.XLAYER_RPC_URL);
-        const orchestrator = new WorkflowOrchestrator(this.env.NODE_PRIVATE_KEY, provider);
-
-        const fee = await orchestrator.collectFee(params.callerAddress, params.budget.toString());
-        return { txHash: fee.txHash, blockNumber: fee.blockNumber, amount: fee.amount };
-      }
-    );
-
-    payments.push({
-      step: "User → Orchestrator: budget deposit",
-      from: params.callerAddress,
-      to: addresses.orchestrator,
-      amount: `${collectResult.amount} USDC`,
-      txHash: collectResult.txHash,
-      blockNumber: collectResult.blockNumber,
-      explorerUrl: `${EXPLORER}/${collectResult.txHash}`,
-    });
-
-    // ── Step 3: Pay PriceOracleAgent (A2A) + fetch price via SDK ─────────────
+    // ── Step 2: Pay PriceOracleAgent (A2A) + fetch price via SDK ─────────────
     const priceResult = await step.do(
       "price_query",
       { retries: { limit: 3, delay: "3 seconds" } },
@@ -129,7 +108,7 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
         const orchestrator = new WorkflowOrchestrator(this.env.NODE_PRIVATE_KEY, provider);
         const priceAgent   = new PriceOracleAgent(this.env.NODE_PRIVATE_KEY, provider);
 
-        // A2A: Orchestrator → PriceOracleAgent
+        // A2A: Orchestrator → PriceOracleAgent (0.001 OKB)
         const fee = await orchestrator.payAgent(addresses.priceOracle, "0.001");
 
         // PriceOracleAgent fetches live price (Binance → CoinGecko fallback)
@@ -143,13 +122,13 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
       step: "Orchestrator → PriceOracleAgent: A2A payment",
       from: addresses.orchestrator,
       to: addresses.priceOracle,
-      amount: "0.001 USDC",
+      amount: "0.001 OKB",
       txHash: priceResult.txHash,
       blockNumber: priceResult.blockNumber,
       explorerUrl: `${EXPLORER}/${priceResult.txHash}`,
     });
 
-    // ── Step 4 (conditional): Pay TradeStrategyAgent (A2A) + get strategy ────
+    // ── Step 3 (conditional): Pay TradeStrategyAgent (A2A) + get strategy ────
     let action: "BUY" | "SELL" | "HOLD" | undefined;
     let conditionMet: boolean | undefined;
     let totalSpent = 0.001;
@@ -167,7 +146,7 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
             const orchestrator = new WorkflowOrchestrator(this.env.NODE_PRIVATE_KEY, provider);
             const tradeAgent   = new TradeStrategyAgent(this.env.NODE_PRIVATE_KEY, provider);
 
-            // A2A: Orchestrator → TradeStrategyAgent
+            // A2A: Orchestrator → TradeStrategyAgent (0.005 OKB)
             const fee = await orchestrator.payAgent(addresses.tradeStrategy, "0.005");
 
             // TradeStrategyAgent analyzes strategy
@@ -192,7 +171,7 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
           step: "Orchestrator → TradeStrategyAgent: A2A payment",
           from: addresses.orchestrator,
           to: addresses.tradeStrategy,
-          amount: "0.005 USDC",
+          amount: "0.005 OKB",
           txHash: tradeResult.txHash,
           blockNumber: tradeResult.blockNumber,
           explorerUrl: `${EXPLORER}/${tradeResult.txHash}`,
@@ -203,7 +182,7 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
       }
     }
 
-    // ── Step 5: Refund remaining balance to caller via SDK ────────────────────
+    // ── Step 4: Refund remaining balance to caller via SDK ────────────────────
     const refundResult = await step.do(
       "refund",
       { retries: { limit: 3, delay: "5 seconds" } },
@@ -220,10 +199,10 @@ export class A2APaymentWorkflow extends WorkflowEntrypoint<Env, A2AWorkflowParam
 
     if (refundResult.txHash) {
       payments.push({
-        step: "Orchestrator → User: refund unspent budget",
+        step: "Orchestrator → User: refund unspent OKB",
         from: addresses.orchestrator,
         to: params.callerAddress,
-        amount: `${refundResult.refunded} USDC`,
+        amount: `${refundResult.refunded} OKB`,
         txHash: refundResult.txHash,
         blockNumber: refundResult.blockNumber,
         explorerUrl: `${EXPLORER}/${refundResult.txHash}`,

@@ -1,8 +1,8 @@
 /**
  * PriceOracleAgent — Real-time crypto price oracle with on-chain payment.
  *
- * Fee: 0.001 USDC per call
- * Flow: transferFrom(caller, agentWallet, 0.001 USDC) → wait(1) → fetch Binance → return price + txHash
+ * Fee: 0.001 OKB per call
+ * Flow: payAgent(orchestrator → agentWallet, 0.001 OKB) → fetch Binance → return price + txHash
  *
  * All payments verifiable on X Layer Explorer.
  */
@@ -27,7 +27,7 @@ export interface PriceResult {
 
 export class PriceOracleAgent extends AgentX {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
-    super(masterKey, "price-oracle", { perCall: "0.001", currency: "USDC" }, provider);
+    super(masterKey, "price-oracle", { perCall: "0.001", currency: "OKB" }, provider);
   }
 
   protected getCapabilities() {
@@ -37,7 +37,7 @@ export class PriceOracleAgent extends AgentX {
   /**
    * Get live price with on-chain payment.
    *
-   * @param callerAddress - Caller's address (must have approved 0.001 USDC)
+   * @param callerAddress - Caller's address (pays 0.001 OKB)
    * @param symbol - Token symbol e.g. "ETH", "BTC", "OKB"
    */
   async getPrice(callerAddress: string, symbol: string): Promise<PriceResult> {

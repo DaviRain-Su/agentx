@@ -1,8 +1,8 @@
 /**
  * TradeStrategyAgent — AI-powered trade strategy analysis with on-chain payment.
  *
- * Fee: 0.005 USDC per call (0.01 for complex multi-asset analysis)
- * Flow: transferFrom(caller, agentWallet, 0.005 USDC) → wait(1) → analyze → return strategy + txHash
+ * Fee: 0.005 OKB per call (0.01 for complex multi-asset analysis)
+ * Flow: payAgent(orchestrator → agentWallet, 0.005 OKB) → analyze → return strategy + txHash
  *
  * All payments verifiable on X Layer Explorer.
  */
@@ -42,7 +42,7 @@ export interface TradeStrategyResult {
 
 export class TradeStrategyAgent extends AgentX {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
-    super(masterKey, "trade-strategy", { perCall: "0.005", currency: "USDC" }, provider);
+    super(masterKey, "trade-strategy", { perCall: "0.005", currency: "OKB" }, provider);
   }
 
   protected getCapabilities() {
@@ -52,7 +52,7 @@ export class TradeStrategyAgent extends AgentX {
   /**
    * Analyze trade strategy with on-chain payment.
    *
-   * @param callerAddress - Caller's address (must have approved 0.005 USDC)
+   * @param callerAddress - Caller's address (pays 0.005 OKB)
    * @param params - Analysis parameters
    */
   async analyzeStrategy(

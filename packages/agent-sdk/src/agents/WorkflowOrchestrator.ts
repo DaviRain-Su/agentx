@@ -1,10 +1,10 @@
 /**
  * WorkflowOrchestrator — Multi-agent A2A payment coordinator.
  *
- * Implements the x402-style A2A payment protocol:
- * 1. Receives user budget (real USDC transferFrom)
- * 2. Pays PriceOracleAgent (0.001 USDC) → gets price
- * 3. If condition met, pays TradeStrategyAgent (0.005 USDC) → gets strategy
+ * Implements the A2A payment protocol using native OKB:
+ * 1. Orchestrator's wallet is pre-funded with OKB
+ * 2. Pays PriceOracleAgent (0.001 OKB) → gets price
+ * 3. If condition met, pays TradeStrategyAgent (0.005 OKB) → gets strategy
  * 4. Returns unspent budget to user
  *
  * Every payment produces a real transaction hash verifiable on X Layer Explorer.
@@ -34,7 +34,7 @@ export interface WorkflowParams {
   threshold?: number;           // e.g. 3000
   holdings?: string[];          // e.g. ["ETH", "BTC"]
   riskLevel?: "low" | "medium" | "high";
-  budget: number;               // Total USDC budget
+  budget: number;               // Total OKB budget
 }
 
 export interface WorkflowResult {
@@ -61,7 +61,7 @@ export class WorkflowOrchestrator extends AgentX {
 
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     // Orchestrator earns 20% commission, passes 80% to specialists
-    super(masterKey, "orchestrator", { perCall: "0.002", currency: "USDC" }, provider, {
+    super(masterKey, "orchestrator", { perCall: "0.002", currency: "OKB" }, provider, {
       owner: 80, platform: 15, stakers: 5,
     });
     this.priceAgent = new PriceOracleAgent(masterKey, provider);
@@ -98,21 +98,11 @@ export class WorkflowOrchestrator extends AgentX {
     const payments: PaymentRecord[] = [];
     let totalSpentWei = 0n;
 
-    // ── Step 1: Receive user budget ──────────────────────────────────────────
-    const budgetFee = await this.collectFee(callerAddress, params.budget.toString());
-    totalSpentWei = ethers.parseUnits(params.budget.toString(), 6);
-
-    payments.push({
-      step: "User → Orchestrator: budget deposit",
-      from: callerAddress,
-      to: this.wallet.address,
-      agentName: "WorkflowOrchestrator",
-      amount: params.budget.toString(),
-      type: "user_to_orchestrator",
-      txHash: budgetFee.txHash,
-      blockNumber: budgetFee.blockNumber,
-      explorerUrl: `${XLAYER_EXPLORER}/${budgetFee.txHash}`,
-    });
+    // ── Step 1: Verify orchestrator has enough OKB budget ──────────────────
+    const balance = await this.getBalance();
+    if (parseFloat(balance) < params.budget) {
+      throw new Error(`Orchestrator needs ${params.budget} OKB but only has ${balance} OKB`);
+    }
 
     // ── Step 2: Pay PriceOracleAgent (A2A) ──────────────────────────────────
     const priceFee = await this.payAgent(this.priceAgent.getAddress(), "0.001");
@@ -178,13 +168,11 @@ export class WorkflowOrchestrator extends AgentX {
     }
 
     // ── Step 7: Refund unspent budget ────────────────────────────────────────
-    const balance = await this.usdc.balanceOf(this.wallet.address);
+    const refundResult = await this.refundAll(callerAddress);
     let refundedStr = "0";
 
-    if (balance > 0n) {
-      const refundTx = await this.usdc.transfer(callerAddress, balance);
-      const refundReceipt = await refundTx.wait(1);
-      refundedStr = ethers.formatUnits(balance, 6);
+    if (refundResult) {
+      refundedStr = refundResult.amount;
 
       payments.push({
         step: "Orchestrator → User: refund unspent budget",
@@ -192,9 +180,9 @@ export class WorkflowOrchestrator extends AgentX {
         to: callerAddress,
         amount: refundedStr,
         type: "refund",
-        txHash: refundReceipt.hash,
-        blockNumber: refundReceipt.blockNumber,
-        explorerUrl: `${XLAYER_EXPLORER}/${refundReceipt.hash}`,
+        txHash: refundResult.txHash,
+        blockNumber: refundResult.blockNumber,
+        explorerUrl: `${XLAYER_EXPLORER}/${refundResult.txHash}`,
       });
     }
 

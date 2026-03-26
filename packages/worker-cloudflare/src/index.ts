@@ -181,7 +181,7 @@ export default {
 
       const toEntry = (agent: WorkflowOrchestrator | PriceOracleAgent | TradeStrategyAgent) => {
         const info = agent.getInfo();
-        return { address: info.address, fee: `${info.pricing.perCall} USDC`, capabilities: info.capabilities };
+        return { address: info.address, fee: `${info.pricing.perCall} OKB`, capabilities: info.capabilities };
       };
 
       return Response.json({
@@ -458,7 +458,7 @@ async function handleA2ASimulate(request: Request, env: Env): Promise<Response> 
 
   return Response.json({
     status: "simulated",
-    note: "Simulation mode — no real USDC transfers. Use POST /api/a2a with callerAddress for real payments.",
+    note: "Simulation mode — no real OKB transfers. Use POST /api/a2a with callerAddress for real payments.",
     symbol,
     currentPrice: price,
     conditionMet,
@@ -469,10 +469,9 @@ async function handleA2ASimulate(request: Request, env: Env): Promise<Response> 
       tradeStrategy: deriveAddress("trade-strategy"),
     },
     simulatedPayments: [
-      { step: "User → Orchestrator",            amount: `${budget} USDC` },
-      { step: "Orchestrator → PriceOracleAgent", amount: "0.001 USDC" },
-      conditionMet ? { step: "Orchestrator → TradeStrategyAgent", amount: "0.005 USDC" } : null,
-      { step: "Orchestrator → User (refund)",    amount: `${(budget - 0.001 - (conditionMet ? 0.005 : 0)).toFixed(4)} USDC` },
+      { step: "Orchestrator → PriceOracleAgent", amount: "0.001 OKB" },
+      conditionMet ? { step: "Orchestrator → TradeStrategyAgent", amount: "0.005 OKB" } : null,
+      { step: "Orchestrator → User (refund)",    amount: `${(budget - 0.001 - (conditionMet ? 0.005 : 0)).toFixed(4)} OKB` },
     ].filter(Boolean),
   }, { headers: CORS });
 }

@@ -5,6 +5,8 @@ import { fetchRealtimePriceTextWithEnv } from "./pricing";
 import { DOFileStore } from "./store";
 import { payAgent } from "./payment";
 
+const EXPLORER = "https://www.oklink.com/x-layer-testnet/tx";
+
 export function buildBusinessTools(store: DOFileStore, env: Env): any[] {
   return [
     {
@@ -63,15 +65,18 @@ export function buildBusinessTools(store: DOFileStore, env: Env): any[] {
     {
       name: "call_price_agent" as const,
       label: "call_price_agent",
-      description: "Hire PriceMonitorAgent via A2A payment (1.5 USDC).",
+      description: "Hire PriceMonitorAgent via A2A payment (0.001 OKB on X Layer).",
       parameters: Type.Object({ token: Type.String() }),
       execute: async (_id: string, { token }: { token: string }) => {
         const lines: string[] = [];
         if (env.NODE_PRIVATE_KEY && env.XLAYER_RPC_URL) {
           const provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
-          const orchestrator = new ethers.Wallet(env.NODE_PRIVATE_KEY, provider);
-          const payment = await payAgent(orchestrator, "price-agent", "1.5", provider);
-          lines.push(payment.paid ? `Payment confirmed: ${payment.txHash}` : `Payment skipped: ${payment.reason}`);
+          const seed = ethers.keccak256(ethers.toUtf8Bytes(`${env.NODE_PRIVATE_KEY}:orchestrator`));
+          const orchestrator = new ethers.Wallet(seed, provider);
+          const payment = await payAgent(orchestrator, "price-oracle", "0.001", provider);
+          lines.push(payment.paid
+            ? `✅ A2A Payment confirmed: ${payment.txHash}\n   Explorer: ${EXPLORER}/${payment.txHash}`
+            : `⚠️ Payment skipped: ${payment.reason}`);
         } else {
           lines.push("NODE_PRIVATE_KEY missing, payment skipped.");
         }
@@ -82,7 +87,7 @@ export function buildBusinessTools(store: DOFileStore, env: Env): any[] {
     {
       name: "call_trade_agent" as const,
       label: "call_trade_agent",
-      description: "Hire TradeExecutorAgent via A2A payment (2.5 USDC).",
+      description: "Hire TradeStrategyAgent via A2A payment (0.005 OKB on X Layer).",
       parameters: Type.Object({
         token: Type.String(),
         price: Type.Number(),
@@ -92,9 +97,12 @@ export function buildBusinessTools(store: DOFileStore, env: Env): any[] {
         const lines: string[] = [];
         if (env.NODE_PRIVATE_KEY && env.XLAYER_RPC_URL) {
           const provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
-          const orchestrator = new ethers.Wallet(env.NODE_PRIVATE_KEY, provider);
-          const payment = await payAgent(orchestrator, "trade-agent", "2.5", provider);
-          lines.push(payment.paid ? `Payment confirmed: ${payment.txHash}` : `Payment skipped: ${payment.reason}`);
+          const seed = ethers.keccak256(ethers.toUtf8Bytes(`${env.NODE_PRIVATE_KEY}:orchestrator`));
+          const orchestrator = new ethers.Wallet(seed, provider);
+          const payment = await payAgent(orchestrator, "trade-strategy", "0.005", provider);
+          lines.push(payment.paid
+            ? `✅ A2A Payment confirmed: ${payment.txHash}\n   Explorer: ${EXPLORER}/${payment.txHash}`
+            : `⚠️ Payment skipped: ${payment.reason}`);
         } else {
           lines.push("NODE_PRIVATE_KEY missing, payment skipped.");
         }

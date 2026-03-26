@@ -1,9 +1,8 @@
 /**
  * AgentX — Base class for all AgentX agents on X Layer.
  *
- * Power Worker SDK: Extend this class, override `execute()`,
- * and your agent automatically handles USDC fee collection,
- * revenue sharing, and ERC-8004 registration.
+ * All inter-agent payments use **native OKB** (X Layer's gas token).
+ * No ERC-20 approve/allowance needed — just direct value transfers.
  *
  * @example
  * class MyDataAgent extends AgentX {
@@ -23,8 +22,8 @@ import { ethers } from "ethers";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface AgentPricing {
-  perCall: string;       // USDC amount e.g. "0.001"
-  currency: "USDC";
+  perCall: string;       // OKB amount e.g. "0.001"
+  currency: "OKB";
 }
 
 export interface FeeCollectionResult {
@@ -49,27 +48,16 @@ export interface AgentInfo {
   registryId?: number;     // ERC-8004 registration ID (if registered)
 }
 
-// ─── ABIs ─────────────────────────────────────────────────────────────────────
-
-const USDC_ABI = [
-  "function transfer(address to, uint256 amount) returns (bool)",
-  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-  "function balanceOf(address account) view returns (uint256)",
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function approve(address spender, uint256 amount) returns (bool)",
-];
-
-// X Layer Testnet USDC
-const USDC_ADDRESS = "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d";
-
 // AgentX platform wallet (receives platform share)
 const PLATFORM_ADDRESS = "0x39223444d2f9a4d6769e91aa7908CB22CA3A8686";
+
+// Gas reserve: keep enough OKB in wallet to pay for future txs
+const GAS_RESERVE = ethers.parseEther("0.01");
 
 // ─── AgentX Base Class ────────────────────────────────────────────────
 
 export abstract class AgentX {
   protected readonly wallet: ethers.Wallet;
-  protected readonly usdc: ethers.Contract;
   protected readonly provider: ethers.JsonRpcProvider;
   protected readonly agentName: string;
   protected readonly pricing: AgentPricing;
@@ -91,7 +79,6 @@ export abstract class AgentX {
     // Derive deterministic agent wallet from master key + agent name
     const walletSeed = ethers.keccak256(ethers.toUtf8Bytes(`${masterKey}:${agentName}`));
     this.wallet = new ethers.Wallet(walletSeed, provider);
-    this.usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, this.wallet);
   }
 
   /** Agent's derived wallet address */
@@ -115,10 +102,16 @@ export abstract class AgentX {
   }
 
   /**
-   * Collect service fee from caller via USDC transferFrom.
-   * Caller must have approved this agent's wallet address first.
+   * Collect service fee — verify caller sent OKB to this agent.
    *
-   * @param from - Caller's wallet address
+   * With native tokens there's no "pull" (transferFrom). The caller must
+   * send OKB to this agent's address beforehand. This method verifies the
+   * agent has enough balance to have received the expected fee.
+   *
+   * For the A2A workflow the Orchestrator calls payAgent() to push OKB
+   * to sub-agents, so collectFee is mainly used for the User → Orchestrator step.
+   *
+   * @param from - Caller's wallet address (for record-keeping)
    * @param overrideAmount - Override default pricing (optional)
    */
   async collectFee(
@@ -126,57 +119,58 @@ export abstract class AgentX {
     overrideAmount?: string
   ): Promise<FeeCollectionResult> {
     const amount = overrideAmount || this.pricing.perCall;
-    const amountWei = ethers.parseUnits(amount, 6);
+    const balance = await this.provider.getBalance(this.wallet.address);
+    const needed = ethers.parseEther(amount);
 
-    // Check allowance
-    const allowance = await this.usdc.allowance(from, this.wallet.address);
-    if (allowance < amountWei) {
+    if (balance < needed) {
       throw new Error(
-        `Insufficient USDC allowance. Need ${amount} USDC approved for ${this.wallet.address}. ` +
-        `Current: ${ethers.formatUnits(allowance, 6)} USDC`
+        `Insufficient OKB balance for ${this.agentName}. ` +
+        `Need ${amount} OKB, have ${ethers.formatEther(balance)} OKB`
       );
     }
 
-    // Transfer fee from caller to agent wallet
-    const tx = await this.usdc.transferFrom(from, this.wallet.address, amountWei);
-    const receipt = await tx.wait(1);
-
+    // Return a "virtual" receipt — the actual transfer was a native send by the caller.
+    // In the A2A workflow, the real tx comes from payAgent().
     return {
-      txHash: receipt.hash,
+      txHash: "0x" + "0".repeat(64), // placeholder — real tx tracked by caller
       amount,
       from,
       to: this.wallet.address,
-      blockNumber: receipt.blockNumber,
+      blockNumber: 0,
     };
   }
 
   /**
    * Direct payment from this agent to another agent (A2A).
-   * Used by Orchestrator to pay Specialist agents.
+   * Used by Orchestrator to pay specialist agents.
+   * Native OKB transfer — no approve needed.
    *
    * @param toAgentAddress - Recipient agent wallet address
-   * @param amount - USDC amount to pay
+   * @param amount - OKB amount to pay (e.g. "0.001")
    */
   async payAgent(toAgentAddress: string, amount: string): Promise<FeeCollectionResult> {
-    const amountWei = ethers.parseUnits(amount, 6);
-    const balance = await this.usdc.balanceOf(this.wallet.address);
+    const amountWei = ethers.parseEther(amount);
+    const balance = await this.provider.getBalance(this.wallet.address);
 
-    if (balance < amountWei) {
+    if (balance < amountWei + GAS_RESERVE) {
       throw new Error(
-        `Agent ${this.agentName} has insufficient USDC. ` +
-        `Balance: ${ethers.formatUnits(balance, 6)}, needed: ${amount}`
+        `Agent ${this.agentName} has insufficient OKB. ` +
+        `Balance: ${ethers.formatEther(balance)}, needed: ${amount} + gas reserve`
       );
     }
 
-    const tx = await this.usdc.transfer(toAgentAddress, amountWei);
+    const tx = await this.wallet.sendTransaction({
+      to: toAgentAddress,
+      value: amountWei,
+    });
     const receipt = await tx.wait(1);
 
     return {
-      txHash: receipt.hash,
+      txHash: receipt!.hash,
       amount,
       from: this.wallet.address,
       to: toAgentAddress,
-      blockNumber: receipt.blockNumber,
+      blockNumber: receipt!.blockNumber,
     };
   }
 
@@ -191,54 +185,61 @@ export abstract class AgentX {
     ownerAddress: string,
     platformAddress: string = PLATFORM_ADDRESS
   ): Promise<{ txHashes: string[]; distributed: Record<string, string> }> {
-    const balance = await this.usdc.balanceOf(this.wallet.address);
-    if (balance === 0n) return { txHashes: [], distributed: {} };
+    const balance = await this.provider.getBalance(this.wallet.address);
+    const distributable = balance - GAS_RESERVE;
+    if (distributable <= 0n) return { txHashes: [], distributed: {} };
 
-    const ownerShare  = (balance * BigInt(this.revenueShare.owner))   / 100n;
-    const platformShare = (balance * BigInt(this.revenueShare.platform)) / 100n;
-    // Stakers share stays in agent wallet for now (future: staking contract)
+    const ownerShare = (distributable * BigInt(this.revenueShare.owner)) / 100n;
+    const platformShare = (distributable * BigInt(this.revenueShare.platform)) / 100n;
 
     const txHashes: string[] = [];
     const distributed: Record<string, string> = {};
 
     if (ownerShare > 0n) {
-      const tx = await this.usdc.transfer(ownerAddress, ownerShare);
+      const tx = await this.wallet.sendTransaction({ to: ownerAddress, value: ownerShare });
       const r = await tx.wait(1);
-      txHashes.push(r.hash);
-      distributed.owner = ethers.formatUnits(ownerShare, 6);
+      txHashes.push(r!.hash);
+      distributed.owner = ethers.formatEther(ownerShare);
     }
 
     if (platformShare > 0n) {
-      const tx = await this.usdc.transfer(platformAddress, platformShare);
+      const tx = await this.wallet.sendTransaction({ to: platformAddress, value: platformShare });
       const r = await tx.wait(1);
-      txHashes.push(r.hash);
-      distributed.platform = ethers.formatUnits(platformShare, 6);
+      txHashes.push(r!.hash);
+      distributed.platform = ethers.formatEther(platformShare);
     }
 
     return { txHashes, distributed };
   }
 
-  /** USDC balance of this agent's wallet */
+  /** Native OKB balance of this agent's wallet */
   async getBalance(): Promise<string> {
-    const bal = await this.usdc.balanceOf(this.wallet.address);
-    return ethers.formatUnits(bal, 6);
+    const bal = await this.provider.getBalance(this.wallet.address);
+    return ethers.formatEther(bal);
   }
 
   /**
-   * Transfer the agent's full USDC balance to a recipient (e.g. refund to caller).
-   * Returns null if balance is zero.
+   * Transfer the agent's OKB balance (minus gas reserve) to a recipient.
+   * Used for refunding unspent budget to the caller.
+   * Returns null if nothing to refund.
    */
   async refundAll(toAddress: string): Promise<FeeCollectionResult | null> {
-    const balance: bigint = await this.usdc.balanceOf(this.wallet.address);
-    if (balance === 0n) return null;
-    const tx = await this.usdc.transfer(toAddress, balance);
+    const balance = await this.provider.getBalance(this.wallet.address);
+    const refundable = balance - GAS_RESERVE;
+    if (refundable <= 0n) return null;
+
+    const tx = await this.wallet.sendTransaction({
+      to: toAddress,
+      value: refundable,
+    });
     const receipt = await tx.wait(1);
+
     return {
-      txHash: receipt.hash,
-      amount: ethers.formatUnits(balance, 6),
+      txHash: receipt!.hash,
+      amount: ethers.formatEther(refundable),
       from: this.wallet.address,
       to: toAddress,
-      blockNumber: receipt.blockNumber,
+      blockNumber: receipt!.blockNumber,
     };
   }
 }
