@@ -276,7 +276,7 @@ export default function WorkflowsPage() {
   const { lang } = useLangStore();
   const { workerUrl, defaultBudgetUsdc } = useAppSettingsStore();
   const workerBase = workerUrl.replace(/\/+$/, "");
-  const { taskManager, usdc, address, signer } = useWeb3();
+  const { taskManager, usdc, address, signer, chainId, isSupportedNetwork, provider: web3Provider } = useWeb3();
   const [workflows] = useState(WORKFLOW_TEMPLATES);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -443,10 +443,46 @@ export default function WorkflowsPage() {
     const threshold = workflow.id === "wf-1" ? 1800 : 0;
 
     // Must have wallet connected
-    if (!usdc || !signer || !address) {
+    if (!signer || !address) {
       alert(lang === "en"
-        ? "Please connect your wallet first. You need axUSDC tokens to run a workflow."
-        : "请先连接钱包。运行工作流需要 axUSDC 代币。");
+        ? "Please connect your wallet first."
+        : "请先连接钱包。");
+      return;
+    }
+
+    // Must be on X Layer Testnet (chain 195)
+    if (!isSupportedNetwork) {
+      const shouldSwitch = confirm(lang === "en"
+        ? `Wrong network (current: ${chainId}). Switch to X Layer Testnet (195)?`
+        : `网络错误（当前: ${chainId}）。切换到 X Layer Testnet (195)？`);
+      if (shouldSwitch) {
+        try {
+          await (window as any).ethereum?.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0xC3" }], // 195 = 0xC3
+          });
+        } catch (switchErr: any) {
+          if (switchErr.code === 4902) {
+            await (window as any).ethereum?.request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: "0xC3",
+                chainName: "X Layer Testnet",
+                rpcUrls: ["https://xlayertestrpc.okx.com"],
+                nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },
+                blockExplorerUrls: ["https://www.oklink.com/x-layer-testnet"],
+              }],
+            });
+          }
+        }
+      }
+      return;
+    }
+
+    if (!usdc) {
+      alert(lang === "en"
+        ? "axUSDC contract not loaded. Please refresh the page."
+        : "axUSDC 合约未加载，请刷新页面。");
       return;
     }
 
@@ -520,18 +556,21 @@ export default function WorkflowsPage() {
       const msg = error instanceof Error ? error.message : String(error);
       console.error("Workflow failed:", msg);
 
-      // Fallback to simulation only if user explicitly agrees
-      if (confirm(
-        lang === "en"
-          ? `On-chain execution failed: ${msg}\n\nRun in simulation mode instead?`
-          : `链上执行失败：${msg}\n\n改用模拟模式运行？`
-      )) {
-        try {
-          await runSimulationFlow(workflow, effectiveBudget, symbol, a2aType, threshold);
-        } catch (simErr) {
-          alert(`Simulation also failed: ${simErr instanceof Error ? simErr.message : String(simErr)}`);
-        }
+      // Parse common errors
+      let userMsg = msg;
+      if (msg.includes("BAD_DATA") || msg.includes("0x")) {
+        userMsg = lang === "en"
+          ? "Contract call failed. Make sure you're on X Layer Testnet (Chain ID 195)."
+          : "合约调用失败。请确认你在 X Layer Testnet (Chain ID 195) 上。";
+      } else if (msg.includes("user rejected") || msg.includes("User denied")) {
+        userMsg = lang === "en" ? "Transaction cancelled by user." : "用户取消了交易。";
+      } else if (msg.includes("insufficient")) {
+        userMsg = lang === "en"
+          ? "Insufficient balance. You need axUSDC and OKB (gas) on X Layer Testnet."
+          : "余额不足。你需要在 X Layer Testnet 上有 axUSDC 和 OKB（gas）。";
       }
+
+      alert(userMsg);
     } finally {
       setIsCreating(false);
     }
