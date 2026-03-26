@@ -65,7 +65,7 @@ export function Navbar() {
               </div>
             ) : (
               <button
-                onClick={connect}
+                onClick={() => connect()}
                 className="btn-primary flex items-center gap-2"
               >
                 <Wallet className="w-4 h-4" />
