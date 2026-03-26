@@ -51,10 +51,10 @@ export class StateManager {
   private readonly LOCK_TTL = 300; // 5 minutes
 
   constructor(env: Env) {
-    if (!env.GRADIENCE_KV) {
-      throw new Error("GRADIENCE_KV binding not found");
+    if (!env.XAGENT_KV) {
+      throw new Error("XAGENT_KV binding not found");
     }
-    this.kv = env.GRADIENCE_KV;
+    this.kv = env.XAGENT_KV;
   }
 
   /**

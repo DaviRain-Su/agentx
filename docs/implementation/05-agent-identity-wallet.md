@@ -107,7 +107,7 @@ async function registerAgentIdentity(agentName: string, walletAddress: string, e
     const tx = await registry.register(walletAddress, {
       name: agentName,
       capabilities: ["price-feed", "trade-preparation"],
-      endpoint: `https://gradience-worker.${env.CF_SUBDOMAIN}.workers.dev`,
+      endpoint: `https://xagent-worker.${env.CF_SUBDOMAIN}.workers.dev`,
     });
     await tx.wait(1);
     console.log(`[${agentName}] Registered on 8004 registry: ${tx.hash}`);

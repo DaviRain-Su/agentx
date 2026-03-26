@@ -110,7 +110,7 @@ export async function deployAgent(
   // 实际：调用Cloudflare API部署
   // MVP：返回模拟URL，记录到本地
   const agentId = `agent-${Date.now()}`;
-  const url = `https://gradience.io/agents/${agentId}`;
+  const url = `https://xagent.io/agents/${agentId}`;
   
   // 注册到本地存储（模拟链上注册）
   localStorage.setItem(`agent:${agentId}`, JSON.stringify({
@@ -129,13 +129,13 @@ export async function deployAgent(
 ```bash
 # 用户只需3步
 echo "Creating PriceMonitorAgent..."
-curl -X POST https://gradience.io/api/deploy \
+curl -X POST https://xagent.io/api/deploy \
   -d '{"template": "priceMonitor", "config": {"name": "MyPriceAgent"}}'
 
 # 返回
 {
   "agentId": "agent-123456",
-  "url": "https://gradience.io/agents/agent-123456",
+  "url": "https://xagent.io/agents/agent-123456",
   "status": "deployed"
 }
 ```
@@ -464,13 +464,13 @@ Agent可以是服务提供者，可以雇佣其他Agent，可以自主交易。
 
 ```bash
 # 部署Agent
-curl -X POST https://gradience.io/api/deploy \
+curl -X POST https://xagent.io/api/deploy \
   -d '{"template": "priceMonitor", "name": "MyAgent"}'
 
 # 返回部署URL
 {
   "agentId": "agent-123",
-  "url": "https://gradience.io/agents/agent-123",
+  "url": "https://xagent.io/agents/agent-123",
   "status": "live"
 }
 ```
@@ -479,7 +479,7 @@ curl -X POST https://gradience.io/api/deploy \
 
 ```bash
 # Agent使用工具（自动计费）
-curl https://gradience.io/agents/agent-123/chat \
+curl https://xagent.io/agents/agent-123/chat \
   -d '{"message": "Check ETH price"}'
 
 # 回复
@@ -506,7 +506,7 @@ curl https://gradience.io/agents/agent-123/chat \
 
 ```bash
 # 启动A2A工作流
-curl -X POST https://gradience.io/api/a2a \
+curl -X POST https://xagent.io/api/a2a \
   -d '{
     "workflow": "price_alert",
     "budget": 5,

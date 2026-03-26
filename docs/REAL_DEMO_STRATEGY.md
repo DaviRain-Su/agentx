@@ -609,7 +609,7 @@ export class AgentRegistryService {
     
     const tx = await this.registry.connect(signer).registerAgent(
       name,
-      `https://gradience.io/agents/${name}`,
+      `https://xagent.io/agents/${name}`,
       capabilityHashes
     );
     

@@ -8,7 +8,7 @@
  */
 
 import { ethers } from "ethers";
-import { GradienceAgent } from "../core/GradienceAgent";
+import { XAgent } from "../core/XAgent";
 
 export interface PriceResult {
   symbol: string;
@@ -25,7 +25,7 @@ export interface PriceResult {
   };
 }
 
-export class PriceOracleAgent extends GradienceAgent {
+export class PriceOracleAgent extends XAgent {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     super(masterKey, "price-oracle", { perCall: "0.001", currency: "USDC" }, provider);
   }

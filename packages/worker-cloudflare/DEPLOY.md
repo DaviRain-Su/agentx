@@ -52,10 +52,10 @@ wrangler deploy
 
 ```bash
 # Health check
-curl https://gradience-worker.你的子域名.workers.dev/health
+curl https://xagent-worker.你的子域名.workers.dev/health
 
 # 手动触发任务（测试用）
-curl -X POST https://gradience-worker.你的子域名.workers.dev/execute \
+curl -X POST https://xagent-worker.你的子域名.workers.dev/execute \
   -H "Content-Type: application/json" \
   -d '{"taskId": "test-1", "workflowHash": "mock"}'
 ```

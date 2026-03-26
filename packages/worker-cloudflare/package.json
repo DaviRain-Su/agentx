@@ -1,7 +1,7 @@
 {
-  "name": "@gradience/worker-cloudflare",
+  "name": "@xagent/worker-cloudflare",
   "version": "0.1.0",
-  "description": "Gradience Agent Worker on Cloudflare",
+  "description": "XAgent Worker on Cloudflare",
   "main": "dist/index.js",
   "scripts": {
     "prepare:pi-worker": "node scripts/prepare-pi-worker.mjs",
@@ -16,8 +16,8 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@gradience/agent-sdk": "file:../agent-sdk",
-    "@gradience/shared-orchestrator": "file:../shared-orchestrator",
+    "@xagent/agent-sdk": "file:../agent-sdk",
+    "@xagent/shared-orchestrator": "file:../shared-orchestrator",
     "@mariozechner/pi-agent-core": "^0.62.0",
     "@mariozechner/pi-ai": "^0.62.0",
     "@sinclair/typebox": "^0.34.48",

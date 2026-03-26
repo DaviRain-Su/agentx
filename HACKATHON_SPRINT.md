@@ -1,4 +1,4 @@
-# Gradience 双轨黑客松计划
+# XAgent 双轨黑客松计划
 
 > **X Layer (3/26 截止)** ← 当前重点 | Solana (4/3 截止) ← 延期
 > 最后更新: 2025-03-25 14:00
@@ -134,12 +134,12 @@ EOF
 
 ## 🎯 新增核心组件
 
-### Agent SDK (`@gradience/agent-sdk`)
+### Agent SDK (`@xagent/agent-sdk`)
 ```typescript
 // 快速开始
-import { createGradienceSession } from "@gradience/agent-sdk";
+import { createXAgentSession } from "@xagent/agent-sdk";
 
-const { session } = await createGradienceSession({
+const { session } = await createXAgentSession({
   masterKey: env.NODE_PRIVATE_KEY,
   agentName: "my-agent",
   cfGatewayToken: env.CF_GATEWAY_TOKEN,

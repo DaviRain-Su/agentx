@@ -1,5 +1,5 @@
 {
-  "name": "@gradience/shared-orchestrator",
+  "name": "@xagent/shared-orchestrator",
   "version": "0.1.0",
   "description": "Shared workflow orchestration engine for X Layer and Solana adapters",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
     "solana",
     "blockchain"
   ],
-  "author": "Gradience Team",
+  "author": "XAgent Team",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.0",

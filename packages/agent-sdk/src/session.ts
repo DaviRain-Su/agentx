@@ -1,23 +1,23 @@
 /**
- * createGradienceSession — Launch a pi-worker agent with Gradience payment tools.
+ * createXAgentSession — Launch a pi-worker agent with XAgent payment tools.
  *
- * This is the main integration point between pi-worker and the Gradience
+ * This is the main integration point between pi-worker and the XAgent
  * decentralized agent economy. It:
  *
  * 1. Takes a pi-worker SqliteTextFileStore (from your Durable Object SQLite)
  * 2. Creates file tools via pi-worker's createSqliteTools()
- * 3. Creates Gradience payment/market/task tools
+ * 3. Creates XAgent payment/market/task tools
  * 4. Passes everything to pi-coding-agent-worker's createAgentSession()
  *
  * Usage in a Cloudflare Durable Object:
  * ```typescript
  * import { DurableObject } from "cloudflare:workers";
  * import { getSqliteStore } from "pi-worker";
- * import { createGradienceSession } from "@gradience/agent-sdk";
+ * import { createXAgentSession } from "@xagent/agent-sdk";
  *
  * export class MyAgent extends DurableObject {
  *   async chat(userMessage: string): Promise<string> {
- *     const { session } = await createGradienceSession({
+ *     const { session } = await createXAgentSession({
  *       sqliteStore: getSqliteStore(this.ctx.storage.sql),
  *       masterKey: this.env.NODE_PRIVATE_KEY,
  *       agentName: "my-agent",
@@ -32,9 +32,9 @@
  * ```
  */
 
-import { createGradienceTools, GRADIENCE_SYSTEM_PROMPT, type GradienceToolConfig } from "./tools/index.js";
+import { createXAgentTools, XAGENT_SYSTEM_PROMPT, type XAgentToolConfig } from "./tools/index.js";
 
-export interface GradienceSessionConfig extends GradienceToolConfig {
+export interface XAgentSessionConfig extends XAgentToolConfig {
   /** pi-worker SqliteTextFileStore — from getSqliteStore(this.ctx.storage.sql) */
   sqliteStore: {
     get(path: string): Promise<string | undefined>;
@@ -56,14 +56,14 @@ export interface GradienceSessionConfig extends GradienceToolConfig {
 }
 
 /**
- * Create a pi-worker agent session pre-loaded with Gradience payment tools.
+ * Create a pi-worker agent session pre-loaded with XAgent payment tools.
  *
  * Combines:
  * - pi-worker's createSqliteTools() for persistent file system
- * - Gradience's createGradienceTools() for on-chain payments
+ * - XAgent's createXAgentTools() for on-chain payments
  * - pi-coding-agent-worker's createAgentSession() for the agent loop
  */
-export async function createGradienceSession(config: GradienceSessionConfig) {
+export async function createXAgentSession(config: XAgentSessionConfig) {
   // Dynamic imports so pi-worker/pi-coding-agent-worker are optional peer deps.
   // If not installed, this throws a clear error.
   let createSqliteTools: (store: unknown) => unknown[];
@@ -78,7 +78,7 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
     createSqliteTools = piWorker.createSqliteTools;
   } catch {
     throw new Error(
-      "@gradience/agent-sdk: createGradienceSession() requires 'pi-worker' to be installed.\n" +
+      "@xagent/agent-sdk: createXAgentSession() requires 'pi-worker' to be installed.\n" +
       "Run: npm install pi-worker"
     );
   }
@@ -92,7 +92,7 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
     SettingsManager = piAgent.SettingsManager;
   } catch {
     throw new Error(
-      "@gradience/agent-sdk: createGradienceSession() requires 'pi-coding-agent-worker' to be installed.\n" +
+      "@xagent/agent-sdk: createXAgentSession() requires 'pi-coding-agent-worker' to be installed.\n" +
       "Run: npm install pi-coding-agent-worker"
     );
   }
@@ -100,8 +100,8 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
   // ── File tools from pi-worker ─────────────────────────────────────────────
   const fileTools = createSqliteTools(config.sqliteStore);
 
-  // ── Payment/market/task tools from Gradience SDK ──────────────────────────
-  const paymentTools = createGradienceTools({
+  // ── Payment/market/task tools from XAgent SDK ──────────────────────────
+  const paymentTools = createXAgentTools({
     masterKey: config.masterKey,
     agentName: config.agentName,
     rpcUrl: config.rpcUrl,
@@ -128,7 +128,7 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
     api: "openai-completions",
     models: [{
       id: modelId,
-      name: `Gradience (${modelId})`,
+      name: `XAgent (${modelId})`,
       reasoning: true,
       input: ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -139,7 +139,7 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
   });
 
   const model = {
-    provider: "ai-gateway", id: modelId, name: `Gradience (${modelId})`,
+    provider: "ai-gateway", id: modelId, name: `XAgent (${modelId})`,
     api: "openai-completions", reasoning: true, input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 200000, maxTokens: 64000,
@@ -153,8 +153,8 @@ export async function createGradienceSession(config: GradienceSessionConfig) {
     retry: { enabled: false },
   });
 
-  // ── Minimal resource loader with Gradience system prompt ──────────────────
-  const systemPrompt = config.systemPrompt ?? GRADIENCE_SYSTEM_PROMPT;
+  // ── Minimal resource loader with XAgent system prompt ──────────────────
+  const systemPrompt = config.systemPrompt ?? XAGENT_SYSTEM_PROMPT;
   const resourceLoader = {
     getExtensions: () => ({ extensions: [], errors: [], runtime: createMinimalRuntime() }),
     getSkills: () => ({ skills: [], diagnostics: [] }),

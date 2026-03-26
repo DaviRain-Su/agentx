@@ -2,7 +2,7 @@
 
 ## 愿景
 
-CodeFlare 是一个自主代码生成与执行框架，让 AI Agent 能够编写、测试、部署和优化代码。它是 Gradience 的核心能力层，支持从自然语言需求到生产级代码的完整生命周期。
+CodeFlare 是一个自主代码生成与执行框架，让 AI Agent 能够编写、测试、部署和优化代码。它是 XAgent 的核心能力层，支持从自然语言需求到生产级代码的完整生命周期。
 
 ## 核心概念
 
@@ -348,7 +348,7 @@ const LANGUAGE_RUNTIMES: Record<string, RuntimeConfig> = {
 };
 ```
 
-## 集成到 Gradience
+## 集成到 XAgent
 
 ### 作为 Agent 类型
 ```typescript

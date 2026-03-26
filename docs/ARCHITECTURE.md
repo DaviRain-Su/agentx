@@ -1,4 +1,4 @@
-# Gradience — 架构文档
+# XAgent — 架构文档
 
 > 当前版本：黑客松阶段（X Layer 截止 3/26，Solana 截止 3/27）
 > 最后更新：2026-03-25
@@ -7,7 +7,7 @@
 
 ## 一、项目是什么
 
-Gradience 是一个**去中心化 AI Agent 经济网络**。
+XAgent 是一个**去中心化 AI Agent 经济网络**。
 
 核心主张：AI Agent 可以相互雇用、相互付费，每一笔支付都有链上 txHash 可验证。
 底层链：X Layer Testnet（EVM 兼容，chainId=195）。
@@ -18,10 +18,10 @@ Gradience 是一个**去中心化 AI Agent 经济网络**。
 ## 二、包结构
 
 ```
-gradience/
+xagent/
 ├── packages/
 │   ├── agent-sdk/              # 开发者 SDK ← 核心产品
-│   ├── worker-cloudflare/      # Gradience 自己的 demo Worker（也是参考实现）
+│   ├── worker-cloudflare/      # XAgent 自己的 demo Worker（也是参考实现）
 │   ├── shared-orchestrator/    # 工作流引擎（sequential/parallel/DAG）
 │   ├── node-local/             # 本地节点（非 Cloudflare 环境运行）
 │   └── solana-adapter/         # Solana 链适配（截止 3/27，开发中）
@@ -55,7 +55,7 @@ gradience/
 
 ## 四、Agent 钱包派生机制
 
-Gradience 使用**确定性钱包派生**，一个 masterKey 可以派生出多个 agent 钱包：
+XAgent 使用**确定性钱包派生**，一个 masterKey 可以派生出多个 agent 钱包：
 
 ```
 privateKey = keccak256(toUtf8Bytes(`${NODE_PRIVATE_KEY}:${agentName}`))
@@ -125,9 +125,9 @@ Workflow 内部（每步失败自动重试，不重复执行已完成步骤）�
 
 ---
 
-## 六、@gradience/agent-sdk
+## 六、@xagent/agent-sdk
 
-开发者用这个 SDK 把自己的 Agent 接入 Gradience 网络。
+开发者用这个 SDK 把自己的 Agent 接入 XAgent 网络。
 
 ### 设计原则
 
@@ -138,9 +138,9 @@ Workflow 内部（每步失败自动重试，不重复执行已完成步骤）�
 ### 提供的工具
 
 ```typescript
-import { createGradienceTools } from "@gradience/agent-sdk";
+import { createXAgentTools } from "@xagent/agent-sdk";
 
-const tools = createGradienceTools({
+const tools = createXAgentTools({
   masterKey: env.NODE_PRIVATE_KEY,
   agentName: "my-agent",
   // rpcUrl 默认 X Layer Testnet
@@ -159,11 +159,11 @@ const tools = createGradienceTools({
 ### 一键启动（推荐用法）
 
 ```typescript
-import { createGradienceSession } from "@gradience/agent-sdk";
+import { createXAgentSession } from "@xagent/agent-sdk";
 import { getSqliteStore } from "pi-worker";
 
 // 在 Cloudflare Durable Object 里
-const { session } = await createGradienceSession({
+const { session } = await createXAgentSession({
   sqliteStore: getSqliteStore(this.ctx.storage.sql), // pi-worker 文件系统
   masterKey: env.NODE_PRIVATE_KEY,
   agentName: "my-defi-agent",
@@ -178,7 +178,7 @@ const { session } = await createGradienceSession({
 
 ## 七、worker-cloudflare 的定位
 
-**这是 Gradience 自己运行的 demo Worker**，同时也是开发者的参考实现模板。
+**这是 XAgent 自己运行的 demo Worker**，同时也是开发者的参考实现模板。
 
 它不是"管理整个网络的中心"，它只是网络里的一个节点。
 
@@ -233,7 +233,7 @@ src/executors/TaskExecutor.ts    ← 写了完整逻辑，但没有触发它的 
 ### 关键环境变量
 
 ```bash
-NEXT_PUBLIC_WORKER_URL=https://gradience-worker.davirain-yin.workers.dev
+NEXT_PUBLIC_WORKER_URL=https://xagent-worker.davirain-yin.workers.dev
 NEXT_PUBLIC_TASK_MANAGER_ADDRESS=0x39223444d2f9a4d6769e91aa7908CB22CA3A8686
 NEXT_PUBLIC_PAYMENT_HUB_ADDRESS=0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60
 NEXT_PUBLIC_USDC_ADDRESS=0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e
@@ -289,7 +289,7 @@ NEXT_PUBLIC_USDC_ADDRESS=0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e
 
 ### P2 — 后续产品方向
 
-8. **开发者如何发布自己的 Agent 到 Gradience Market**：
+8. **开发者如何发布自己的 Agent 到 XAgent Market**：
    - 需要 AgentRegistry 的 `registerAgent` 流程
    - 需要 Market 前端支持从链上读取（而非 hardcode）
    - 需要确定 Agent 的"服务接口"规范
@@ -324,9 +324,9 @@ npm run build
 ### 验证
 
 ```bash
-curl https://gradience-worker.xxx.workers.dev/health
-curl https://gradience-worker.xxx.workers.dev/api/agents
-curl -X POST https://gradience-worker.xxx.workers.dev/api/a2a/simulate \
+curl https://xagent-worker.xxx.workers.dev/health
+curl https://xagent-worker.xxx.workers.dev/api/agents
+curl -X POST https://xagent-worker.xxx.workers.dev/api/a2a/simulate \
   -H "Content-Type: application/json" \
   -d '{"symbol":"ETH","budget":0.01}'
 ```

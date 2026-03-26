@@ -206,7 +206,7 @@ function PublishModal({ onClose }: { onClose: () => void }) {
 
       const metadataURI = endpoint.trim()
         ? `${endpoint.trim().replace(/\/$/, "")}/metadata.json`
-        : `https://gradience.network/agents/${encodeURIComponent(name.trim())}`;
+        : `https://xagent.network/agents/${encodeURIComponent(name.trim())}`;
 
       const capHashes = selectedCaps.map(c =>
         ethers.keccak256(ethers.toUtf8Bytes(c))

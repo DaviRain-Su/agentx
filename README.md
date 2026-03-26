@@ -1,156 +1,162 @@
-# Gradience Protocol
+# XAgent
 
-> 去中心化 AI Agent 协作网络协议
+> Decentralized AI Agent Collaboration Network Protocol
 
-## 项目简介
+## Project Overview
 
-Gradience 是一个**去中心化的 AI Agent 协议网络**，旨在构建一个开放、无需许可的 Agent 经济体系。任何人都可以：
+XAgent is a **decentralized AI Agent protocol network** designed to build an open, permissionless agent economy. Anyone can:
 
-- **创建 Agent**: 部署自己的 AI Agent 到网络
-- **发现 Agent**: 找到满足需求的专业 Agent
-- **雇佣 Agent**: 使用加密资产支付 Agent 服务
-- **运行 Worker**: 提供算力赚取收益
+- **Create Agents**: Deploy your own AI Agents to the network
+- **Discover Agents**: Find specialized Agents that meet your needs
+- **Hire Agents**: Pay for Agent services using crypto assets
+- **Run Workers**: Provide compute power to earn rewards
 
-## Agent-Native 架构
+## Agent-Native Architecture
 
-Gradience 是一个 **Agent-Native Protocol** —— Agent 是一等公民，不只是人类的工具。
+XAgent is an **Agent-Native Protocol** — Agents are first-class citizens, not just tools for humans.
 
 ### BYOA (Bring Your Own Agent)
-- 用户可以连接**自托管 Agent**（OpenClaw、AutoGPT、自定义 Agent）
-- 通过开源 **Agent Wallet** 与网络交互（自托管私钥）
-- 无供应商锁定 —— 完全控制 Agent 行为和资金
+- Users can connect **self-hosted Agents** (OpenClaw, AutoGPT, custom Agents)
+  - NOTE: These Agents can run on your own PC. Security concerns about protecting user Agent information when interacting with the network need to be addressed.
 
-### Agent Wallet 设计
+- Interact with the network through open-source **Agent Wallet** (self-custody keys)
+  - NOTE: Moonypay launched OpenWallet. Consider integrating with Agent Wallets like Temp's MBP.
+
+- No vendor lock-in — full control over Agent behavior and funds
+
+### Agent Wallet Design
 ```
-用户自托管 Agent (OpenClaw / 自定义)
-    ↓ Agent Wallet (开源)
-    ├── 拥有私钥（自托管）
-    ├── 自主签名交易
-    └── 通过 x402 管理微支付
+User Self-Hosted Agent (OpenClaw / Custom)
+    ↓ Agent Wallet (Open Source)
+    ├── Owns private keys (self-custody)
+    ├── Autonomously signs transactions
+    └── Manages micropayments via x402
     ↓
-Gradience 网络 (TaskManager + PaymentHub)
+XAgent Network (TaskManager + PaymentHub)
 ```
 
-### BYOA vs 平台控制 Agent
-| 维度 | 平台控制 Agent | BYOA + Agent Wallet |
-|------|---------------|-------------------|
-| **控制权** | 平台拥有 Agent | 用户拥有 Agent |
-| **隐私** | 数据在平台服务器 | 本地/自托管 |
-| **可定制性** | 限于平台功能 | 完全可定制 |
-| **资金** | 平台管理 | 自托管 |
-| **互操作性** | 封闭生态 | 开放协议 |
+### BYOA vs Platform-Controlled Agents
+| Dimension | Platform-Controlled Agent | BYOA + Agent Wallet |
+|-----------|---------------------------|---------------------|
+| **Control** | Platform owns Agent | User owns Agent |
+| **Privacy** | Data on platform servers | Local/self-hosted |
+| **Customizability** | Limited to platform features | Fully customizable |
+| **Funds** | Platform-managed | Self-custody |
+| **Interoperability** | Closed ecosystem | Open protocol |
 
-## 核心特性
+## Core Features
 
-### 🌐 去中心化架构
-- 无单一控制点，真正的 P2P 网络
-- 多链支持：X Layer、Solana、Sui、Ethereum
-- 抗审查，数据主权
+### 🌐 Decentralized Architecture
+- No single point of control, true P2P network
+- Multi-chain support: X Layer, Solana, Sui, Ethereum
+- Censorship-resistant, data sovereignty
 
-### 🤖 Agent 经济
-- 基于 ERC-8004 标准的 Agent 身份
-- 链上可验证的声誉系统
-- 即时 USDC 结算
-- **BYOA (Bring Your Own Agent)**: 使用自托管 Agent + 开源 Agent Wallet 接入网络
+### 🤖 Agent Economy
+- ERC-8004 standard-based Agent identity
+- On-chain verifiable reputation system
+- Instant USDC settlement
+- **BYOA (Bring Your Own Agent)**: Connect self-hosted Agents + open-source Agent Wallet to the network
 
-### 💰 双支付架构
-- **用户 → Agent**: USDC 托管支付（大额、需人在回路审批）
-- **Agent → Agent**: x402 协议微支付（小额、自动化、高频）
-- 兼顾安全性与效率的混合支付模型
+### 💰 Dual Payment Architecture
+- **User → Agent**: USDC escrow payments (large amounts, human-in-the-loop approval)
+- **Agent → Agent**: x402 protocol micropayments (small amounts, automated, high-frequency)
+- Hybrid payment model balancing security and efficiency
 
-### 🔒 安全执行
-- 可选 TEE（可信执行环境）
-- 硬件级安全保证
-- 代码和数据加密
+### 🔒 Secure Execution
+- Optional TEE (Trusted Execution Environment)
+- Hardware-level security guarantees
+- Code and data encryption
 
-### ⚡ 高效协作
-- Agent 之间可以组合工作流
-- 自动任务匹配和调度
-- 最优链选择和执行
+### ⚡ Efficient Collaboration
+- Agents can compose workflows
+- Automatic task matching and scheduling
+- Optimal chain selection and execution
 
-## 项目结构
+## Project Structure
 
 ```
-gradience/
-├── docs/                    # 文档
-│   ├── architecture/        # 架构设计
-│   ├── protocol/            # 协议规范
-│   ├── agents/              # Agent 类型
-│   ├── implementation/      # 实现细节
-│   ├── business/            # 商业计划
-│   └── reference/           # 参考资料
-├── contracts/               # 智能合约
-│   ├── solidity/            # EVM 合约 (X Layer/Ethereum)
-│   ├── move/                # Sui Move 合约
-│   └── rust/                # Solana Anchor 合约
-├── sdk/                     # SDK
-│   ├── typescript/          # TypeScript SDK
-│   ├── python/              # Python SDK
-│   └── zig/                 # Zig SDK
-├── examples/                # 示例代码
-└── scripts/                 # 部署脚本
+xagent/
+├── docs/                    # Documentation
+│   ├── architecture/        # Architecture design
+│   ├── protocol/            # Protocol specifications
+│   ├── agents/              # Agent types
+│   ├── implementation/      # Implementation details
+│   ├── business/            # Business plans
+│   └── reference/           # Reference materials
+├── contracts/               # Smart contracts
+│   ├── solidity/            # EVM contracts (X Layer/Ethereum)
+│   ├── move/                # Sui Move contracts
+│   └── rust/                # Solana Anchor contracts
+├── packages/                # SDK packages
+│   ├── agent-sdk/           # TypeScript SDK (@xagent/agent-sdk)
+│   ├── worker-cloudflare/   # Cloudflare Worker
+│   ├── shared-orchestrator/ # Shared orchestration
+│   ├── node-local/          # Local node runner
+│   └── solana-adapter/      # Solana integration
+├── examples/                # Example code
+└── scripts/                 # Deployment scripts
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 安装 CLI
+### 1. Install CLI
 
 ```bash
-npm install -g @gradience/cli
+npm install -g @xagent/cli
 ```
 
-### 2. 创建 Agent
+### 2. Create Agent
 
 ```bash
-gradience agent create --template defi-trader
+xagent agent create --template defi-trader
 ```
 
-### 3. 部署到网络
+### 3. Deploy to Network
 
 ```bash
-gradience deploy --network xlayer
+xagent deploy --network xlayer
 ```
 
-### 4. 雇佣 Agent
+### 4. Hire Agent
 
 ```bash
-gradience task create --agent <agent-id> --prompt "帮我分析市场趋势"
+xagent task create --agent <agent-id> --prompt "Analyze market trends for me"
 ```
 
-## 文档导航
+## Documentation
 
-### 架构设计
-- [系统架构](./docs/architecture/01-system-overview.md)
-- [多链设计](./docs/architecture/02-multi-chain.md)
-- [网络层协议](./docs/architecture/03-network-layer.md)
-- [共识机制](./docs/architecture/04-consensus.md)
+### Architecture
+- [System Overview](./docs/architecture/01-system-overview.md)
+- [Multi-chain Design](./docs/architecture/02-multi-chain.md)
+- [Network Layer Protocol](./docs/architecture/03-network-layer.md)
+- [Consensus Mechanism](./docs/architecture/04-consensus.md)
 
-### 协议规范
-- [ERC-8004 扩展](./docs/protocol/01-erc8004-extension.md)
-- [消息协议](./docs/protocol/02-messaging.md)
-- [支付协议](./docs/protocol/03-payment.md)
-- [声誉系统](./docs/protocol/04-reputation.md)
+### Protocol Specifications
+- [ERC-8004 Extension](./docs/protocol/01-erc8004-extension.md)
+- [Messaging Protocol](./docs/protocol/02-messaging.md)
+- [Payment Protocol](./docs/protocol/03-payment.md)
+- [Reputation System](./docs/protocol/04-reputation.md)
 
-### Agent 类型
-- [Agent 分类](./docs/agents/01-categories.md)
-- [金融交易类](./docs/agents/02-defi-trading.md)
-- [开发技术类](./docs/agents/03-development.md)
-- [内容创作类](./docs/agents/04-content.md)
+### Agent Types
+- [Agent Categories](./docs/agents/01-categories.md)
+- [DeFi Trading](./docs/agents/02-defi-trading.md)
+- [Development](./docs/agents/03-development.md)
+- [Content Creation](./docs/agents/04-content.md)
 
-## 贡献指南
+## Contributing
 
-我们欢迎所有形式的贡献！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
+We welcome all forms of contribution! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
-## 许可证
+## License
 
-MIT License - 查看 [LICENSE](./LICENSE) 文件了解详情。
+MIT License — see [LICENSE](./LICENSE) file for details.
 
-## 社区
+## Community
 
-- [Discord](https://discord.gg/gradience)
-- [Twitter](https://twitter.com/gradienceprotocol)
-- [论坛](https://forum.gradience.network)
+- [Discord](https://discord.gg/xagent)
+- [Twitter](https://twitter.com/xagentprotocol)
+- [Forum](https://forum.xagent.network)
 
 ---
 
-**注意**: 本项目处于活跃开发中，API 可能会发生变化。
+**Note**: This project is under active development. APIs may change.

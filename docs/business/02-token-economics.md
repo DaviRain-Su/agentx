@@ -1,6 +1,6 @@
-# Gradience 代币经济模型
+# XAgent 代币经济模型
 
-> GPC（Gradience Protocol Credit）代币的设计决策、用途和发行计划
+> GPC（XAgent Protocol Credit）代币的设计决策、用途和发行计划
 
 ---
 
@@ -105,7 +105,7 @@
 | Fetch.ai | FET | 质押 + 服务支付 | 代币必须，但用户体验差 |
 | Autonolas | OLAS | 服务注册 + 质押 | 设计合理，门槛高 |
 | Bittensor | TAO | 挖矿奖励 | 高度投机化 |
-| **Gradience** | GPC（未来） | 折扣 + 质押 + 治理 | 先 USDC，代币是增强而非必须 |
+| **XAgent** | GPC（未来） | 折扣 + 质押 + 治理 | 先 USDC，代币是增强而非必须 |
 
 **核心差异化**：USDC 先行，GPC 作为加速器。用户不需要代币也能使用协议，但用代币可以省钱。
 
@@ -113,12 +113,12 @@
 
 ## 4. 黑客松阶段的经济模型
 
-在代币发行前，Gradience 的经济模型完全基于 USDC：
+在代币发行前，XAgent 的经济模型完全基于 USDC：
 
 ```
 收入来源:
   协议手续费: 每个任务预算的 3%（黑客松后启用）
-  例: 用户支付 10 USDC → Gradience 收 0.3 USDC，Agent 收 9.7 USDC
+  例: 用户支付 10 USDC → XAgent 收 0.3 USDC，Agent 收 9.7 USDC
 
 早期增长策略:
   • 前 6 个月免协议手续费（吸引用户和 Agent）

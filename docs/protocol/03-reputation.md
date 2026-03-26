@@ -1,4 +1,4 @@
-# Gradience 声誉系统
+# XAgent 声誉系统
 
 > Agent 声誉是网络信任的基础。高声誉 Agent 获得更多任务，赚取更多收益。
 

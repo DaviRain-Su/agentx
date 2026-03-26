@@ -1,4 +1,4 @@
-# Gradience 实现规范文档 (For Codex)
+# XAgent 实现规范文档 (For Codex)
 
 **文档版本**: 1.0  
 **目标**: 为 Codex 提供完整、精确的实现指导  
@@ -10,7 +10,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           Gradience Platform                             │
+│                           XAgent Platform                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────────────┐    │
@@ -166,11 +166,11 @@ export class WorkflowStorage {
   saveToLocal(workflow: WorkflowData): void {
     const workflows = this.getAllLocal();
     workflows[workflow.id] = workflow;
-    localStorage.setItem('gradience_workflows', JSON.stringify(workflows));
+    localStorage.setItem('xagent_workflows', JSON.stringify(workflows));
   }
   
   getAllLocal(): Record<string, WorkflowData> {
-    const stored = localStorage.getItem('gradience_workflows');
+    const stored = localStorage.getItem('xagent_workflows');
     return stored ? JSON.parse(stored) : {};
   }
 }
@@ -271,14 +271,14 @@ export class TaskService {
   }
   
   private saveTaskToLocal(taskId: number, workflowHash: string, budget: string): void {
-    const tasks = JSON.parse(localStorage.getItem('gradience_tasks') || '[]');
+    const tasks = JSON.parse(localStorage.getItem('xagent_tasks') || '[]');
     tasks.push({
       taskId,
       workflowHash,
       budget,
       createdAt: Date.now(),
     });
-    localStorage.setItem('gradience_tasks', JSON.stringify(tasks));
+    localStorage.setItem('xagent_tasks', JSON.stringify(tasks));
   }
 }
 ```
@@ -404,7 +404,7 @@ export class AgentChatService {
   }
   
   private buildSystemPrompt(context: ChatContext): string {
-    return `You are ${context.agentName}, an AI agent in the Gradience platform.
+    return `You are ${context.agentName}, an AI agent in the XAgent platform.
     
 Context:
 - User address: ${context.userAddress}
@@ -521,7 +521,7 @@ async function getPendingTasks(taskManager: ethers.Contract): Promise<Task[]> {
 #!/bin/bash
 set -e
 
-echo "🚀 Deploying Gradience Worker..."
+echo "🚀 Deploying XAgent Worker..."
 
 # Load environment variables
 if [ -f .env ]; then

@@ -8,7 +8,7 @@
  */
 
 import { ethers } from "ethers";
-import { GradienceAgent } from "../core/GradienceAgent";
+import { XAgent } from "../core/XAgent";
 
 const AGENT_REGISTRY_ADDRESS = "0x8004A818BFB912233c491871b3d84c89A494BD9e";
 
@@ -42,17 +42,17 @@ export class AgentRegistryService {
    * Register an agent on-chain via ERC-8004.
    * The agent's wallet signs the registration transaction.
    *
-   * @param agent - The GradienceAgent instance to register
+   * @param agent - The XAgent instance to register
    * @param signer - Wallet that signs the registration (usually the agent's wallet)
    * @param metadataURI - URL to agent metadata JSON (capabilities, description, pricing)
    */
   async registerAgent(
-    agent: GradienceAgent,
+    agent: XAgent,
     signer: ethers.Wallet,
     metadataURI?: string
   ): Promise<RegisteredAgent> {
     const info = agent.getInfo();
-    const uri = metadataURI || `https://gradience-worker.davirain-yin.workers.dev/agents/${info.name}`;
+    const uri = metadataURI || `https://xagent-worker.davirain-yin.workers.dev/agents/${info.name}`;
 
     const capabilityHashes = info.capabilities.map((c) =>
       ethers.keccak256(ethers.toUtf8Bytes(c))
@@ -134,7 +134,7 @@ export class AgentRegistryService {
    * Returns registration records for all agents.
    */
   async registerDemoAgents(
-    agents: { agent: GradienceAgent; signer: ethers.Wallet }[]
+    agents: { agent: XAgent; signer: ethers.Wallet }[]
   ): Promise<RegisteredAgent[]> {
     const results: RegisteredAgent[] = [];
     for (const { agent, signer } of agents) {

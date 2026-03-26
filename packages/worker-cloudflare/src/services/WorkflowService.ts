@@ -7,7 +7,7 @@
  * - IPFS - Distributed storage
  */
 
-import { Workflow, WorkflowStep } from "@gradience/shared-orchestrator";
+import { Workflow, WorkflowStep } from "@xagent/shared-orchestrator";
 import { WorkflowError, ValidationError } from "../utils/errors";
 import { withApiRetry } from "../utils/retry";
 
@@ -86,8 +86,8 @@ export class WorkflowService {
     }
     
     // xurl: xurl:// prefix or specific format
-    if (hash.startsWith("xurl://") || hash.startsWith("gradience://")) {
-      return { type: "xurl", hash: hash.replace(/^(xurl|gradience):\/\//, "") };
+    if (hash.startsWith("xurl://") || hash.startsWith("xagent://")) {
+      return { type: "xurl", hash: hash.replace(/^(xurl|xagent):\/\//, "") };
     }
     
     return { type: "inline", hash };

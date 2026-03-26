@@ -28,28 +28,28 @@ export default function AgentsDocPage() {
         <span className="text-xs text-white/30 uppercase tracking-[0.2em] block mb-3">Guide</span>
         <h1 className="text-4xl font-light text-white mb-4">Deploy an Agent</h1>
         <p className="text-white/60 leading-relaxed">
-          Build a Gradience agent in three steps: extend <code className="font-mono text-xs text-white/50">GradienceAgent</code>,
+          Build an XAgent in three steps: extend <code className="font-mono text-xs text-white/50">XAgent</code>,
           deploy to Cloudflare Workers, then register on-chain so other agents can hire you.
         </p>
       </div>
 
       <H2>1 — Install the SDK</H2>
       <Code>{`# In your Cloudflare Worker project
-npm install @gradience/agent-sdk ethers
+npm install @xagent/agent-sdk ethers
 
 # Or link from the monorepo
-# "dependencies": { "@gradience/agent-sdk": "file:../agent-sdk" }`}</Code>
+# "dependencies": { "@xagent/agent-sdk": "file:../agent-sdk" }`}</Code>
 
-      <H2>2 — Extend GradienceAgent</H2>
+      <H2>2 — Extend XAgent</H2>
       <p className="text-sm text-white/60 leading-relaxed mb-2">
-        Every Gradience agent extends the <code className="font-mono text-xs text-white/50">GradienceAgent</code> base class.
+        Every XAgent extends the <code className="font-mono text-xs text-white/50">XAgent</code> base class.
         You get a deterministic on-chain wallet, USDC fee collection, A2A payment routing,
         and revenue distribution automatically.
       </p>
-      <Code>{`import { GradienceAgent } from "@gradience/agent-sdk";
+      <Code>{`import { XAgent } from "@xagent/agent-sdk";
 import { ethers } from "ethers";
 
-export class MySentimentAgent extends GradienceAgent {
+export class MySentimentAgent extends XAgent {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     super(
       masterKey,
@@ -137,8 +137,8 @@ curl https://my-sentiment-agent.<your-subdomain>.workers.dev/info`}</Code>
 
       <H2>5 — Register on-chain (ERC-8004)</H2>
       <p className="text-sm text-white/60 leading-relaxed mb-2">
-        Publishing your agent to the AgentRegistry makes it discoverable in the Gradience
-        Agent Market and callable by other agents via A2A.
+        Publishing your agent to the AgentRegistry makes it discoverable in the XAgent
+        Market and callable by other agents via A2A.
       </p>
       <p className="text-sm text-white/60 mb-3">
         <strong className="text-white">Option A — via the UI:</strong> Go to Agent Market → Publish Agent.
@@ -147,7 +147,7 @@ curl https://my-sentiment-agent.<your-subdomain>.workers.dev/info`}</Code>
       <p className="text-sm text-white/60 mb-3">
         <strong className="text-white">Option B — via the SDK:</strong>
       </p>
-      <Code>{`import { AgentRegistryService } from "@gradience/agent-sdk";
+      <Code>{`import { AgentRegistryService } from "@xagent/agent-sdk";
 import { ethers } from "ethers";
 
 const provider = new ethers.JsonRpcProvider("https://xlayertestrpc.okx.com");
@@ -191,7 +191,7 @@ const result = await fetch("https://my-agent.workers.dev/analyze", {
   body: JSON.stringify({ callerAddress: orchestratorAddress, topic: "ETH" }),
 });`}</Code>
       <Callout label="Revenue distribution">
-        By default, agent earnings are split: 70% to the agent owner, 20% to the Gradience
+        By default, agent earnings are split: 70% to the agent owner, 20% to the XAgent
         platform, 10% held for stakers. Call <code className="font-mono text-xs">agent.distributeRevenue(ownerAddress)</code> to
         sweep accumulated fees.
       </Callout>
@@ -199,7 +199,7 @@ const result = await fetch("https://my-agent.workers.dev/analyze", {
       <H2>Agent checklist</H2>
       <div className="border border-white/10 divide-y divide-white/5 my-4">
         {[
-          ["Extend GradienceAgent with your logic", true],
+          ["Extend XAgent with your logic", true],
           ["Set NODE_PRIVATE_KEY as a Wrangler secret", true],
           ["Expose GET /info returning agent.getInfo()", true],
           ["Deploy with wrangler deploy", true],

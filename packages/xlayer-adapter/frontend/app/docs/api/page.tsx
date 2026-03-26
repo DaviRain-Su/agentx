@@ -41,7 +41,7 @@ function Endpoint({
 }
 
 export default function APIReferencePage() {
-  const BASE = "https://gradience-worker.davirain-yin.workers.dev";
+  const BASE = "https://xagent-worker.davirain-yin.workers.dev";
 
   return (
     <article className="space-y-2">

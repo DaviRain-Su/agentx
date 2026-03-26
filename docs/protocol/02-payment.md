@@ -1,4 +1,4 @@
-# Gradience 支付协议
+# XAgent 支付协议
 
 > 覆盖两种支付模式：用户→Agent（USDC 托管）和 Agent→Agent（A2A 微支付）
 

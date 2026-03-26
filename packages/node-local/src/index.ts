@@ -1,4 +1,4 @@
-import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@gradience/shared-orchestrator';
+import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@xagent/shared-orchestrator';
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 

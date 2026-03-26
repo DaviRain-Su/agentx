@@ -1,4 +1,4 @@
-# Gradience 协议文档
+# XAgent 协议文档
 
 > 去中心化 AI Agent 经济协议 — X Layer + Solana 双轨黑客松
 

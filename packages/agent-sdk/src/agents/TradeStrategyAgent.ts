@@ -8,7 +8,7 @@
  */
 
 import { ethers } from "ethers";
-import { GradienceAgent } from "../core/GradienceAgent";
+import { XAgent } from "../core/XAgent";
 
 export interface TradeStrategyParams {
   holdings: string[];          // e.g. ["ETH", "BTC"]
@@ -40,7 +40,7 @@ export interface TradeStrategyResult {
   };
 }
 
-export class TradeStrategyAgent extends GradienceAgent {
+export class TradeStrategyAgent extends XAgent {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     super(masterKey, "trade-strategy", { perCall: "0.005", currency: "USDC" }, provider);
   }

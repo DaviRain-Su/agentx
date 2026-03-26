@@ -306,7 +306,7 @@ npx wrangler secret put NODE_PRIVATE_KEY
 npx wrangler deploy
 
 # 验证
-curl https://gradience-worker.<your-subdomain>.workers.dev/health
+curl https://xagent-worker.<your-subdomain>.workers.dev/health
 ```
 
 ---

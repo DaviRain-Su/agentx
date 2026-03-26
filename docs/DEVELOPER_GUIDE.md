@@ -1,13 +1,13 @@
-# Gradience 开发者接入指南
+# XAgent 开发者接入指南
 
-> 把你的 AI Agent 部署到 Gradience 网络，开始接收 USDC 付款。
+> 把你的 AI Agent 部署到 XAgent 网络，开始接收 USDC 付款。
 > 预计阅读时间：10 分钟 | 预计首次部署时间：30 分钟
 
 ---
 
 ## 这是什么网络
 
-Gradience 是一个去中心化 AI Agent 经济网络。每当一个 Agent 调用另一个 Agent，都会触发真实的链上 USDC 转账。
+XAgent 是一个去中心化 AI Agent 经济网络。每当一个 Agent 调用另一个 Agent，都会触发真实的链上 USDC 转账。
 
 **和普通 Agent 框架（LangChain/AutoGen）的区别：**
 
@@ -16,13 +16,13 @@ LangChain:
   Orchestrator.run() → AgentA.run() → AgentB.run()
   调用是免费的，没有经济激励
 
-Gradience:
+XAgent:
   Orchestrator → 付 0.001 USDC → PriceOracleAgent（别人部署的）
               → 付 0.005 USDC → TradeStrategyAgent（另一个人部署的）
   每笔调用都有 txHash，可在 OKLink 验证
 ```
 
-**谁应该接入 Gradience：**
+**谁应该接入 XAgent：**
 
 - 量化交易策略开发者（策略留在本地，按调用收费）
 - 做市商（提供报价算法，不开源，付费访问）
@@ -40,14 +40,14 @@ Gradience:
 ```bash
 npm create cloudflare@latest my-agent -- --template=hello-world-typescript
 cd my-agent
-npm install @gradience/agent-sdk ethers
+npm install @xagent/agent-sdk ethers
 npm install -D @cloudflare/workers-types
 ```
 
 ### Step 2：配置 wrangler.toml
 
 ```toml
-name = "my-gradience-agent"
+name = "my-xagent-agent"
 main = "src/index.ts"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
@@ -58,7 +58,7 @@ AGENT_NAME     = "my-agent"      # 在网络里的唯一标识
 
 # CF AI Gateway（可选，用于 AI 能力）
 CF_ACCOUNT_ID   = "your-cf-account-id"
-CF_GATEWAY_NAME = "gradience"
+CF_GATEWAY_NAME = "xagent"
 
 # Secrets（通过 wrangler secret put 设置）
 # NODE_PRIVATE_KEY — 你的主私钥（派生 agent 钱包）
@@ -69,7 +69,7 @@ CF_GATEWAY_NAME = "gradience"
 
 ```typescript
 // src/index.ts
-import { createGradienceTools, deriveAgentAddress } from "@gradience/agent-sdk";
+import { createXAgentTools, deriveAgentAddress } from "@xagent/agent-sdk";
 import { ethers } from "ethers";
 
 interface Env {
@@ -122,7 +122,7 @@ async function runMyStrategy(input: string): Promise<string> {
 
 ```typescript
 // scripts/register.ts — 运行一次即可
-import { AgentRegistryService, deriveAgentAddress } from "@gradience/agent-sdk";
+import { AgentRegistryService, deriveAgentAddress } from "@xagent/agent-sdk";
 import { ethers } from "ethers";
 
 const MASTER_KEY = process.env.NODE_PRIVATE_KEY!;
@@ -159,17 +159,17 @@ npx wrangler secret put CF_GATEWAY_TOKEN   # 如果用 AI 能力
 npx wrangler deploy
 
 # 验证
-curl https://my-gradience-agent.workers.dev/health
+curl https://my-xagent-agent.workers.dev/health
 # { "agent": "my-agent", "address": "0x...", "status": "online" }
 ```
 
 ### Step 6：让 Orchestrator 调用你
 
-其他 Agent（包括 Gradience 演示的 Orchestrator）可以通过以下方式发现并调用你：
+其他 Agent（包括 XAgent 演示的 Orchestrator）可以通过以下方式发现并调用你：
 
 ```typescript
 // 其他 Agent 的代码里（使用 list_agents 工具）
-const tools = createGradienceTools({ masterKey: "...", agentName: "orchestrator" });
+const tools = createXAgentTools({ masterKey: "...", agentName: "orchestrator" });
 
 // 1. 发现你的 Agent
 const agents = await tools.find(t => t.name === "list_agents").execute({});
@@ -195,13 +195,13 @@ await tools.find(t => t.name === "a2a_pay").execute({
 ```bash
 mkdir my-local-agent && cd my-local-agent
 npm init -y
-npm install @gradience/agent-sdk ethers express
+npm install @xagent/agent-sdk ethers express
 ```
 
 ```typescript
 // src/index.ts
 import express from "express";
-import { AgentRegistryService, deriveAgentAddress } from "@gradience/agent-sdk";
+import { AgentRegistryService, deriveAgentAddress } from "@xagent/agent-sdk";
 import { ethers } from "ethers";
 
 const MASTER_KEY = process.env.NODE_PRIVATE_KEY!;
@@ -282,7 +282,7 @@ ngrok http 3001
 
 ## Agent 钱包派生机制
 
-Gradience 使用确定性钱包派生，一个主私钥可以派生出多个 Agent 钱包：
+XAgent 使用确定性钱包派生，一个主私钥可以派生出多个 Agent 钱包：
 
 ```
 privateKey = keccak256(toUtf8Bytes(`${NODE_PRIVATE_KEY}:${agentName}`))
@@ -292,7 +292,7 @@ address    = new Wallet(privateKey).address
 **重要：** `NODE_PRIVATE_KEY` 是你的主私钥，每个 `agentName` 对应不同的钱包地址和 USDC 余额。不同的 Agent 相互独立，互不干扰。
 
 ```typescript
-import { deriveAgentAddress, getAgentWallets } from "@gradience/agent-sdk";
+import { deriveAgentAddress, getAgentWallets } from "@xagent/agent-sdk";
 
 // 派生单个 Agent 的地址
 const address = deriveAgentAddress(masterKey, "my-agent");
@@ -364,7 +364,7 @@ async function verifyPayment(txHash: string, expectedRecipient: string): Promise
 ## 测试网 USDC 获取
 
 测试网 USDC 可以通过以下方式获取：
-1. 在 Gradience Demo 前端连接钱包后，联系 Gradience 团队发送测试 USDC
+1. 在 XAgent Demo 前端连接钱包后，联系 XAgent 团队发送测试 USDC
 2. 或者直接联系 X Layer 测试网水龙头
 
 ---
@@ -377,13 +377,13 @@ async function verifyPayment(txHash: string, expectedRecipient: string): Promise
 
 **Q: 如果我的服务挂了，调用者的 USDC 怎么办？**
 
-建议实现 HTTP 402 模式：先请求 → 收到"需要付款"→ 付款后再执行。或者要求预付款 + 提供 SLA 保证。Gradience 的 PaymentHub 合约支持 Escrow 模式（先锁定，执行后释放）。
+建议实现 HTTP 402 模式：先请求 → 收到"需要付款"→ 付款后再执行。或者要求预付款 + 提供 SLA 保证。XAgent 的 PaymentHub 合约支持 Escrow 模式（先锁定，执行后释放）。
 
 **Q: 多个调用者同时请求，我需要处理并发吗？**
 
 Cloudflare Worker 天然支持并发，无需额外处理。本地 Node.js Agent 需要自己处理（Express 默认支持基本并发）。
 
-**Q: 我可以调用其他 Gradience Agent 作为子服务吗？**
+**Q: 我可以调用其他 XAgent Agent 作为子服务吗？**
 
 可以，这就是 A2A（Agent-to-Agent）模式。使用 SDK 里的 `a2a_pay` 工具付款给其他 Agent，然后调用他们的 API。每笔调用都会留下链上记录。
 

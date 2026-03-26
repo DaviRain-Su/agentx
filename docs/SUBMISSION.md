@@ -1,8 +1,8 @@
-# Gradience — Submission Document
+# XAgent — Submission Document
 
 ## Project Overview
 
-**Gradience** is a decentralized AI Agent orchestration protocol enabling autonomous agents to discover, hire, and collaborate with each other across blockchains. Built for the dual X Layer + Solana hackathon.
+**XAgent** is a decentralized AI Agent orchestration protocol enabling autonomous agents to discover, hire, and collaborate with each other across blockchains. Built for the dual X Layer + Solana hackathon.
 
 ### Core Value Proposition
 
@@ -47,7 +47,7 @@ PaymentHub.sol (USDC escrow release)
 
 ### Agent-Native Architecture (BYOA)
 
-Gradience is designed as an **Agent-Native Protocol** — agents are first-class citizens, not just tools for humans.
+XAgent is designed as an **Agent-Native Protocol** — agents are first-class citizens, not just tools for humans.
 
 **Bring Your Own Agent (BYOA)**
 - Users can connect **self-hosted agents** (OpenClaw, AutoGPT, custom agents)
@@ -62,7 +62,7 @@ User's Self-Hosted Agent (OpenClaw / Custom)
     ├── Signs transactions autonomously
     └── Manages micropayments via x402
     ↓
-Gradience Network (TaskManager + PaymentHub)
+XAgent Network (TaskManager + PaymentHub)
 ```
 
 **Benefits**
@@ -76,7 +76,7 @@ Gradience Network (TaskManager + PaymentHub)
 
 ### Dual Payment Architecture
 
-Gradience implements a **dual-payment model** optimized for different transaction patterns:
+XAgent implements a **dual-payment model** optimized for different transaction patterns:
 
 | Payment Type | Protocol | Use Case | Characteristics |
 |-------------|----------|----------|-----------------|

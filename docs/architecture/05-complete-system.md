@@ -1,4 +1,4 @@
-# Gradience 完整系统架构
+# XAgent 完整系统架构
 
 > 当前实现状态的真实架构图 — 包含已实现、未实现、Mock 三类标注
 
@@ -94,7 +94,7 @@
 │                                                                                 │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
 │  │                     WorkflowService (存储抽象)                             │  │
-│  │  支持: Arweave | IPFS | xurl:// | gradience:// | 内联 JSON              │  │
+│  │  支持: Arweave | IPFS | xurl:// | xagent:// | 内联 JSON              │  │
 │  │  ✅ DAG 依赖解析  ✅ 步骤变量替换  ✅ Mock 降级                            │  │
 │  └──────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
@@ -261,7 +261,7 @@ AgentSession DO (Orchestrator)
 ### 5.1 Worker API 端点（完整）
 
 ```
-基础 URL: https://gradience-worker.<subdomain>.workers.dev
+基础 URL: https://xagent-worker.<subdomain>.workers.dev
 
 GET  /health
   → { status: "ok", version: "0.1.0", model: "...", nodeId: "..." }

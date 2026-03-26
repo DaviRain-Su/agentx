@@ -167,11 +167,11 @@ export class HumanLoopService {
     stepId: string
   ): Promise<HumanApprovalStatus> {
     try {
-      const raw = await this.env.GRADIENCE_KV.get(`human_approval:${taskId}`);
+      const raw = await this.env.XAGENT_KV.get(`human_approval:${taskId}`);
       if (!raw) return { stepId, status: "pending" };
       const approval = JSON.parse(raw) as { approved: boolean; ts: number };
       // Clean up after reading
-      await this.env.GRADIENCE_KV.delete(`human_approval:${taskId}`);
+      await this.env.XAGENT_KV.delete(`human_approval:${taskId}`);
       return { stepId, status: approval.approved ? "approved" : "rejected" };
     } catch {
       return { stepId, status: "pending" };
