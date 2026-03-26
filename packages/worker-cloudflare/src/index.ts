@@ -497,7 +497,7 @@ async function handleNodeConnect(request: Request, env: Env): Promise<Response> 
     return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
   }
 
-  let body: { endpoint?: string; name?: string; model?: string; capabilities?: unknown } = {};
+  let body: { endpoint?: string; name?: string; model?: string; capabilities?: unknown; fee?: string; feeToken?: string; address?: string } = {};
   try { body = await request.json() as typeof body; } catch { /* ok */ }
 
   if (!body.endpoint) {
@@ -510,6 +510,8 @@ async function handleNodeConnect(request: Request, env: Env): Promise<Response> 
     name: body.name || info.name,
     model: body.model || "unknown",
     capabilities: body.capabilities || [],
+    ...(body.fee ? { fee: body.fee, feeToken: body.feeToken || "OKB" } : {}),
+    ...(body.address ? { address: body.address } : {}),
     lastSeen: Date.now(),
   }), { expirationTtl: 300 });
 

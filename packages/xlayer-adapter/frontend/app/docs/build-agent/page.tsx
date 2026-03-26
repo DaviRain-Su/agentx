@@ -106,6 +106,7 @@ export default {
       name:       "my-agent",
       model:      "llama-3.3-70b",
       capabilities: ["text-generation", "reasoning"],
+      fee:        "0.001",  // OKB per call — enables X402 on /chat
     });
 
     // Handles /health, /chat, OPTIONS — returns null for other routes

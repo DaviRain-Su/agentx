@@ -69,11 +69,11 @@ export interface AgentTask {
   callerAddress?: string;
 }
 
-/** Standard CORS headers */
+/** Standard CORS headers — includes X402 payment header */
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Payment-Proof",
 };
 
 // ─── AgentConnector ───────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export class AgentConnector {
         name: this.config.name,
         model: this.config.model || "unknown",
         capabilities: this.config.capabilities || [],
+        ...(this.config.fee ? { fee: this.config.fee, feeToken: "OKB" } : {}),
         ...(this.wallet ? { address: this.wallet.address } : {}),
       }),
     });
@@ -209,6 +210,27 @@ export class AgentConnector {
     }
 
     if (url.pathname === "/chat" && request.method === "POST") {
+      // X402 Payment Required — enforce if fee is configured
+      if (this.config.fee && this.wallet) {
+        const proof = request.headers.get("X-Payment-Proof");
+        if (!proof) {
+          return Response.json({
+            required: true,
+            agentName: this.config.name,
+            payment: {
+              amount: this.config.fee,
+              token: "OKB",
+              to: this.wallet.address,
+              network: "xlayer-testnet",
+              chainId: 195,
+            },
+            message: `Pay ${this.config.fee} OKB to call ${this.config.name}`,
+          }, { status: 402, headers: CORS });
+        }
+        // Proof provided — accepted (demo: trust txHash, no on-chain verify)
+        // Production: verify tx on X Layer and check amount/recipient
+      }
+
       try {
         const task = await this.parseRequest(request);
         if (!task.message) {
