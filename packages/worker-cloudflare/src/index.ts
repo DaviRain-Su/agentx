@@ -536,18 +536,109 @@ async function handleNodeHeartbeat(request: Request, env: Env): Promise<Response
   return Response.json({ ok: true, nodeId: info.nodeId, lastSeen: data.lastSeen }, { headers: CORS });
 }
 
-/** GET /api/nodes/active — list all online nodes */
+// ─── Built-in Agent Registry (always live — derived from known NODE_PRIVATE_KEY) ─
+// Addresses from CLAUDE.md (deterministic from current NODE_PRIVATE_KEY)
+const BUILTIN_NODES = [
+  {
+    nodeId: "builtin-orchestrator",
+    name: "orchestrator",
+    endpoint: "https://agentx-worker.davirain-yin.workers.dev",
+    model: "llama-3.3-70b-instruct",
+    capabilities: ["workflow_orchestration", "a2a_payment"],
+    address: "0xbE24E6aa9063a7d4885E84E2427Ec6aE31144Ee0",
+    fee: "0.02",
+    feeToken: "OKB",
+    builtin: true,
+  },
+  {
+    nodeId: "builtin-price-oracle",
+    name: "price-oracle",
+    endpoint: "https://agentx-worker.davirain-yin.workers.dev",
+    model: "llama-3.3-70b-instruct",
+    capabilities: ["price_oracle", "data_analysis"],
+    address: "0x1DAaE012c914bb010D2bD5aF3a90d5b0D4cf0ff7",
+    fee: "0.001",
+    feeToken: "OKB",
+    builtin: true,
+  },
+  {
+    nodeId: "builtin-trade-strategy",
+    name: "trade-strategy",
+    endpoint: "https://agentx-worker.davirain-yin.workers.dev",
+    model: "llama-3.3-70b-instruct",
+    capabilities: ["trade_execution", "risk_management"],
+    address: "0x21c89513dFd1f9639e7A4CF1ca518c971430a756",
+    fee: "0.005",
+    feeToken: "OKB",
+    builtin: true,
+  },
+];
+
+/** GET /api/nodes/active — built-in agents + live KV-registered nodes */
 async function handleNodeActive(env: Env): Promise<Response> {
-  const list = await env.AGENTX_KV.list({ prefix: "node_alive:" });
+  // Always include the 3 built-in agents with current timestamp
+  const results = BUILTIN_NODES.map(n => ({ ...n, lastSeen: Date.now() }));
 
-  const nodes = await Promise.all(
-    list.keys.map(async (k) => {
-      const raw = await env.AGENTX_KV.get(k.name);
-      return raw ? JSON.parse(raw) : null;
-    })
-  );
+  // Also include any externally-registered live nodes from KV
+  try {
+    const list = await env.AGENTX_KV.list({ prefix: "node_alive:" });
+    const external = await Promise.all(
+      list.keys.map(async (k) => {
+        const raw = await env.AGENTX_KV.get(k.name);
+        return raw ? JSON.parse(raw) : null;
+      })
+    );
+    results.push(...external.filter(Boolean));
+  } catch { /* KV unavailable — still return built-ins */ }
 
-  return Response.json(nodes.filter(Boolean), { headers: CORS });
+  return Response.json(results, { headers: CORS });
+}
+
+/** POST /api/hire — X402 agent hiring protocol
+ *  No X-Payment-Proof header → 402 with payment details
+ *  With X-Payment-Proof: <txHash> → 200 hired confirmation
+ */
+async function handleHireAgent(request: Request, env: Env): Promise<Response> {
+  let body: { agentName?: string } = {};
+  try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+  const agentName = body.agentName?.trim();
+  if (!agentName) {
+    return Response.json({ error: "agentName required" }, { status: 400, headers: CORS });
+  }
+
+  const agent = BUILTIN_NODES.find(n => n.name === agentName);
+  if (!agent) {
+    return Response.json({ error: `Agent '${agentName}' not found` }, { status: 404, headers: CORS });
+  }
+
+  const paymentProof = request.headers.get("X-Payment-Proof");
+
+  if (!paymentProof) {
+    // X402 Payment Required — return payment details
+    return Response.json({
+      required: true,
+      agentName,
+      payment: {
+        amount: agent.fee,
+        token: agent.feeToken,
+        to: agent.address,
+        network: "xlayer-testnet",
+        chainId: 195,
+      },
+      message: `Pay ${agent.fee} ${agent.feeToken} to hire ${agentName}`,
+    }, { status: 402, headers: CORS });
+  }
+
+  // Payment proof provided — confirm hire (demo: trust txHash, no on-chain verify)
+  return Response.json({
+    hired: true,
+    agentName,
+    txHash: paymentProof,
+    address: agent.address,
+    hiredUntil: Date.now() + 86400000, // 24h
+    message: `${agentName} hired successfully`,
+  }, { headers: CORS });
 }
 
 // ─── ExecutionNode Init ───────────────────────────────────────────────────────

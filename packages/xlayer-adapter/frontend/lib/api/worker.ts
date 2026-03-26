@@ -73,7 +73,29 @@ export interface ActiveNode {
   name: string;
   model: string;
   capabilities: string[];
+  address?: string;
+  fee?: string;
+  feeToken?: string;
+  builtin?: boolean;
   lastSeen: number;
+}
+
+export interface HirePaymentRequired {
+  status: 402;
+  required: true;
+  agentName: string;
+  payment: { amount: string; token: string; to: string; network: string; chainId: number };
+  message: string;
+}
+
+export interface HireSuccess {
+  status: 200;
+  hired: true;
+  agentName: string;
+  txHash: string;
+  address: string;
+  hiredUntil: number;
+  message: string;
 }
 
 export const workerApi = {
@@ -157,6 +179,23 @@ export const workerApi = {
 
   getActiveNodes(workerBase?: string) {
     return requestJson<ActiveNode[]>("/api/nodes/active", undefined, workerBase);
+  },
+
+  async hireAgent(
+    agentName: string,
+    txHash?: string,
+    workerBase?: string
+  ): Promise<HirePaymentRequired | HireSuccess> {
+    const base = normalizeWorkerBase(workerBase);
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (txHash) headers["X-Payment-Proof"] = txHash;
+    const res = await fetch(`${base}/api/hire`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ agentName }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status as 402 | 200, ...data } as HirePaymentRequired | HireSuccess;
   },
 
   confirmTask(taskId: string, approved: boolean, workerBase?: string) {
