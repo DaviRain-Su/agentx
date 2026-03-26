@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 XLAYER_RPC_URL       = "https://xlayertestrpc.okx.com"
-XLAYER_CHAIN_ID      = "195"
+XLAYER_CHAIN_ID      = "1952"
 DEMO_MODE            = "true"
 REGISTRY_CONTRACT    = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
 

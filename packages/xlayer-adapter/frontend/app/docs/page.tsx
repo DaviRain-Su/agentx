@@ -85,7 +85,7 @@ export default function DocsOverview() {
 
       {/* Contract addresses */}
       <section className="space-y-4">
-        <h2 className="text-xs text-white/30 uppercase tracking-[0.2em]">Contract Addresses — X Layer Testnet (chainId: 195)</h2>
+        <h2 className="text-xs text-white/30 uppercase tracking-[0.2em]">Contract Addresses — X Layer Testnet (chainId: 1952)</h2>
         <div className="border border-white/10 divide-y divide-white/5">
           {[
             { name: "TaskManager",    addr: "0x39223444d2f9a4d6769e91aa7908CB22CA3A8686" },

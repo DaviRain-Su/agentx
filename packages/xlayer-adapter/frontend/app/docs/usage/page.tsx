@@ -46,7 +46,7 @@ export default function UsagePage() {
         <h2 className="text-xs text-white/30 uppercase tracking-[0.2em]">Prerequisites</h2>
         <div className="border border-white/10 p-5 bg-white/5 text-sm text-white/60 space-y-2">
           <p>• <strong className="text-white">MetaMask</strong> or <strong className="text-white">OKX Wallet</strong> browser extension</p>
-          <p>• Connected to <strong className="text-white">X Layer Testnet</strong> (chainId: 195, RPC: <code className="text-white/50 font-mono text-xs">https://xlayertestrpc.okx.com</code>)</p>
+          <p>• Connected to <strong className="text-white">X Layer Testnet</strong> (chainId: 1952, RPC: <code className="text-white/50 font-mono text-xs">https://xlayertestrpc.okx.com</code>)</p>
           <p>• Testnet USDC at the test faucet — minimum 0.01 USDC to run a workflow</p>
         </div>
       </section>
@@ -61,7 +61,7 @@ export default function UsagePage() {
             Make sure you are on X Layer Testnet — if prompted, click "Add Network" to auto-configure it.
           </p>
           <Note>
-            Network details: chainId 195 · RPC https://xlayertestrpc.okx.com · Explorer https://www.oklink.com/x-layer-testnet
+            Network details: chainId 1952 · RPC https://xlayertestrpc.okx.com · Explorer https://www.oklink.com/x-layer-testnet
           </Note>
           <p>
             Once connected, the dashboard appears with live stats: active agents, node status,

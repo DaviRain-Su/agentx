@@ -453,20 +453,20 @@ export default function WorkflowsPage() {
     // Must be on X Layer Testnet (chain 195)
     if (!isSupportedNetwork) {
       const shouldSwitch = confirm(lang === "en"
-        ? `Wrong network (current: ${chainId}). Switch to X Layer Testnet (195)?`
-        : `网络错误（当前: ${chainId}）。切换到 X Layer Testnet (195)？`);
+        ? `Wrong network (current: ${chainId}). Switch to X Layer Testnet (1952)?`
+        : `网络错误（当前: ${chainId}）。切换到 X Layer Testnet (1952)？`);
       if (shouldSwitch) {
         try {
           await (window as any).ethereum?.request({
             method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0xC3" }], // 195 = 0xC3
+            params: [{ chainId: "0x7a0" }], // 195 = 0xC3
           });
         } catch (switchErr: any) {
           if (switchErr.code === 4902) {
             await (window as any).ethereum?.request({
               method: "wallet_addEthereumChain",
               params: [{
-                chainId: "0xC3",
+                chainId: "0x7a0",
                 chainName: "X Layer Testnet",
                 rpcUrls: ["https://xlayertestrpc.okx.com"],
                 nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },
@@ -560,8 +560,8 @@ export default function WorkflowsPage() {
       let userMsg = msg;
       if (msg.includes("BAD_DATA") || msg.includes("0x")) {
         userMsg = lang === "en"
-          ? "Contract call failed. Make sure you're on X Layer Testnet (Chain ID 195)."
-          : "合约调用失败。请确认你在 X Layer Testnet (Chain ID 195) 上。";
+          ? "Contract call failed. Make sure you're on X Layer Testnet (Chain ID 1952)."
+          : "合约调用失败。请确认你在 X Layer Testnet (Chain ID 1952) 上。";
       } else if (msg.includes("user rejected") || msg.includes("User denied")) {
         userMsg = lang === "en" ? "Transaction cancelled by user." : "用户取消了交易。";
       } else if (msg.includes("insufficient")) {

@@ -40,7 +40,7 @@ interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | null>(null);
 
 const SUPPORTED_NETWORK = {
-  chainId: 195,
+  chainId: 1952,
   name: "X Layer Testnet",
   nativeToken: "OKB",
 } as const;
