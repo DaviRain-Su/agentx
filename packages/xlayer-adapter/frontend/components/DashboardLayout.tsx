@@ -36,7 +36,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { address, disconnect } = useWeb3();
+  const { address, disconnect, openWalletModal } = useWeb3();
   const { lang, toggleLang } = useLangStore();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -199,13 +199,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {isSidebarOpen && <span className="font-medium text-sm">{t("disconnect", lang)}</span>}
             </button>
           ) : (
-            <Link
-              href="/"
+            <button
+              onClick={openWalletModal}
               className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all"
             >
               <Zap className="w-5 h-5 shrink-0" />
               {isSidebarOpen && <span className="font-medium text-sm">{t("connect", lang)}</span>}
-            </Link>
+            </button>
           )}
         </div>
       </aside>

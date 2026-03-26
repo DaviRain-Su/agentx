@@ -4,6 +4,16 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { ethers } from "ethers";
 import { CONTRACTS, TASK_MANAGER_ABI, PAYMENT_HUB_ABI, USDC_ABI } from "@/lib/contracts";
 
+export type WalletType = "okx" | "metamask" | "walletconnect" | null;
+
+export interface WalletInfo {
+  id: WalletType;
+  name: string;
+  icon: string;
+  isInstalled: boolean;
+  downloadUrl: string;
+}
+
 interface Web3ContextType {
   address: string | null;
   isConnected: boolean;
@@ -18,28 +28,44 @@ interface Web3ContextType {
   taskManager: ethers.Contract | null;
   paymentHub: ethers.Contract | null;
   usdc: ethers.Contract | null;
-  connect: () => Promise<void>;
+  activeWallet: WalletType;
+  wallets: WalletInfo[];
+  showWalletModal: boolean;
+  connect: (walletType?: WalletType) => Promise<void>;
   disconnect: () => Promise<void>;
+  openWalletModal: () => void;
+  closeWalletModal: () => void;
 }
 
 const Web3Context = createContext<Web3ContextType | null>(null);
+
 const SUPPORTED_NETWORK = {
-  chainId: 1952,
+  chainId: 195,
   name: "X Layer Testnet",
   nativeToken: "OKB",
 } as const;
 
-type InjectedEthereum = {
+type InjectedProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<any>;
   on?: (event: string, handler: (...args: any[]) => void) => void;
   removeListener?: (event: string, handler: (...args: any[]) => void) => void;
   isMetaMask?: boolean;
-  providers?: InjectedEthereum[];
+  isOKXWallet?: boolean;
+  providers?: InjectedProvider[];
 };
+
+declare global {
+  interface Window {
+    okxwallet?: InjectedProvider;
+    ethereum?: InjectedProvider;
+  }
+}
 
 export function Web3Provider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [activeWallet, setActiveWallet] = useState<WalletType>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [manuallyDisconnected, setManuallyDisconnected] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -51,6 +77,47 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [paymentHub, setPaymentHub] = useState<ethers.Contract | null>(null);
   const [usdc, setUsdc] = useState<ethers.Contract | null>(null);
 
+  // Check which wallets are installed
+  const checkWallets = useCallback((): WalletInfo[] => {
+    if (typeof window === "undefined") return [];
+    
+    const wallets: WalletInfo[] = [];
+    
+    // Check OKX Wallet
+    const hasOKX = !!window.okxwallet || !!(window.ethereum?.isOKXWallet);
+    wallets.push({
+      id: "okx",
+      name: "OKX Wallet",
+      icon: "🔵",
+      isInstalled: hasOKX,
+      downloadUrl: "https://www.okx.com/web3",
+    });
+    
+    // Check MetaMask
+    const hasMetaMask = !!window.ethereum?.isMetaMask;
+    wallets.push({
+      id: "metamask",
+      name: "MetaMask",
+      icon: "🦊",
+      isInstalled: hasMetaMask,
+      downloadUrl: "https://metamask.io/download/",
+    });
+    
+    return wallets;
+  }, []);
+
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+
+  // Update wallet list on mount
+  useEffect(() => {
+    setWallets(checkWallets());
+    
+    // Re-check when window gains focus (user might have installed wallet)
+    const handleFocus = () => setWallets(checkWallets());
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [checkWallets]);
+
   const safeContract = useCallback((address: string, abi: any, signer: ethers.JsonRpcSigner): ethers.Contract | null => {
     try {
       if (!ethers.isAddress(address) || address === ethers.ZeroAddress) return null;
@@ -61,16 +128,29 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getInjectedEthereum = useCallback((): InjectedEthereum | null => {
+  const getProvider = useCallback((walletType: WalletType): InjectedProvider | null => {
     if (typeof window === "undefined") return null;
-    const ethereum = (window as any).ethereum as InjectedEthereum | undefined;
-    if (!ethereum) return null;
-    const providers = ethereum.providers;
-    if (providers && providers.length > 0) {
-      const metamask = providers.find((p) => p?.isMetaMask);
-      return metamask || providers[0] || ethereum;
+    
+    switch (walletType) {
+      case "okx":
+        // OKX Wallet can be in window.okxwallet or window.ethereum (if OKX is the default)
+        return window.okxwallet || (window.ethereum?.isOKXWallet ? window.ethereum : null);
+      case "metamask":
+        // MetaMask can be in window.ethereum or in providers array
+        if (window.ethereum?.providers) {
+          return window.ethereum.providers.find((p) => p.isMetaMask) || window.ethereum;
+        }
+        return window.ethereum?.isMetaMask ? window.ethereum : null;
+      default:
+        // Auto-detect: prefer OKX, then MetaMask
+        if (window.okxwallet || window.ethereum?.isOKXWallet) {
+          return window.okxwallet || window.ethereum;
+        }
+        if (window.ethereum?.isMetaMask) {
+          return window.ethereum;
+        }
+        return window.ethereum || null;
     }
-    return ethereum;
   }, []);
 
   const clearConnection = useCallback(() => {
@@ -81,9 +161,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     setTaskManager(null);
     setPaymentHub(null);
     setUsdc(null);
+    setActiveWallet(null);
   }, []);
 
-  const setupConnection = useCallback(async (ethProvider: ethers.BrowserProvider, account?: string) => {
+  const setupConnection = useCallback(async (ethProvider: ethers.BrowserProvider, walletType: WalletType, account?: string) => {
     const ethSigner = account ? await ethProvider.getSigner(account) : await ethProvider.getSigner();
     const userAddress = await ethSigner.getAddress();
     const network = await ethProvider.getNetwork();
@@ -92,8 +173,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     setSigner(ethSigner);
     setAddress(userAddress);
     setChainId(Number(network.chainId));
+    setActiveWallet(walletType);
 
-    // Initialize contracts (best-effort; wallet address should still update even if a contract address is invalid)
+    // Initialize contracts
     const tm = safeContract(CONTRACTS.taskManager, TASK_MANAGER_ABI, ethSigner);
     const ph = safeContract(CONTRACTS.paymentHub, PAYMENT_HUB_ABI, ethSigner);
     const usdcContract = safeContract(CONTRACTS.usdc, USDC_ABI, ethSigner);
@@ -103,32 +185,84 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     setUsdc(usdcContract);
   }, [safeContract]);
 
-  // Check if already connected
+  const connect = useCallback(async (walletType?: WalletType) => {
+    setIsConnecting(true);
+    setShowWalletModal(false);
+    
+    try {
+      // If no wallet type specified and we have multiple options, show modal
+      if (!walletType) {
+        const availableWallets = checkWallets().filter(w => w.isInstalled);
+        if (availableWallets.length === 0) {
+          throw new Error("No wallet found. Please install OKX Wallet or MetaMask.");
+        }
+        if (availableWallets.length === 1) {
+          walletType = availableWallets[0].id;
+        } else {
+          // Multiple wallets available, show selection modal
+          setShowWalletModal(true);
+          setIsConnecting(false);
+          return;
+        }
+      }
+
+      const injectedProvider = getProvider(walletType);
+      if (!injectedProvider) {
+        const walletName = walletType === "okx" ? "OKX Wallet" : "MetaMask";
+        throw new Error(`${walletName} not found. Please install it first.`);
+      }
+
+      const ethProvider = new ethers.BrowserProvider(injectedProvider as any);
+      const accounts = await ethProvider.send("eth_requestAccounts", []) as string[];
+      
+      setManuallyDisconnected(false);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("web3_manual_disconnect");
+        window.localStorage.setItem("web3_last_wallet", walletType || "");
+      }
+      
+      await setupConnection(ethProvider, walletType || "metamask", accounts?.[0]);
+    } catch (error) {
+      console.error("Failed to connect:", error);
+      throw error;
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [checkWallets, getProvider, setupConnection]);
+
+  // Check if already connected on mount
   useEffect(() => {
     if (manuallyDisconnected) return;
+    
     const checkConnection = async () => {
-      const ethereum = getInjectedEthereum();
-      if (!ethereum) return;
+      // Try to restore last used wallet
+      const lastWallet = typeof window !== "undefined" 
+        ? window.localStorage.getItem("web3_last_wallet") as WalletType 
+        : null;
+      
+      const injectedProvider = getProvider(lastWallet);
+      if (!injectedProvider) return;
+      
       try {
-        const ethProvider = new ethers.BrowserProvider(ethereum as any);
-        const accounts = await ethereum.request({ method: "eth_accounts" }) as string[];
+        const ethProvider = new ethers.BrowserProvider(injectedProvider as any);
+        const accounts = await injectedProvider.request({ method: "eth_accounts" }) as string[];
         if (accounts && accounts.length > 0) {
-          await setupConnection(ethProvider, accounts[0]);
-        } else {
-          clearConnection();
+          await setupConnection(ethProvider, lastWallet || "metamask", accounts[0]);
         }
       } catch (error) {
-        console.error("Failed to check connection:", error);
+        console.error("Failed to restore connection:", error);
       }
     };
+    
     void checkConnection();
-  }, [clearConnection, getInjectedEthereum, manuallyDisconnected, setupConnection]);
+  }, [manuallyDisconnected, getProvider, setupConnection]);
 
-  // React to wallet/account/network changes in MetaMask/OKX Wallet.
+  // Listen for wallet events
   useEffect(() => {
-    if (manuallyDisconnected) return;
-    const ethereum = getInjectedEthereum();
-    if (!ethereum?.on) return;
+    if (manuallyDisconnected || !activeWallet) return;
+    
+    const injectedProvider = getProvider(activeWallet);
+    if (!injectedProvider?.on) return;
 
     const handleAccountsChanged = async (accounts: string[]) => {
       if (!accounts || accounts.length === 0) {
@@ -136,8 +270,8 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const ethProvider = new ethers.BrowserProvider(ethereum as any);
-        await setupConnection(ethProvider, accounts[0]);
+        const ethProvider = new ethers.BrowserProvider(injectedProvider as any);
+        await setupConnection(ethProvider, activeWallet, accounts[0]);
       } catch (error) {
         console.error("Failed to handle account switch:", error);
         clearConnection();
@@ -146,10 +280,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
     const handleChainChanged = async () => {
       try {
-        const ethProvider = new ethers.BrowserProvider(ethereum as any);
-        const accounts = await ethereum.request({ method: "eth_accounts" }) as string[];
+        const ethProvider = new ethers.BrowserProvider(injectedProvider as any);
+        const accounts = await injectedProvider.request({ method: "eth_accounts" }) as string[];
         if (accounts && accounts.length > 0) {
-          await setupConnection(ethProvider, accounts[0]);
+          await setupConnection(ethProvider, activeWallet, accounts[0]);
         } else {
           clearConnection();
         }
@@ -163,90 +297,43 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       clearConnection();
     };
 
-    ethereum.on("accountsChanged", handleAccountsChanged);
-    ethereum.on("chainChanged", handleChainChanged);
-    ethereum.on("disconnect", handleDisconnect);
+    injectedProvider.on("accountsChanged", handleAccountsChanged);
+    injectedProvider.on("chainChanged", handleChainChanged);
+    injectedProvider.on("disconnect", handleDisconnect);
 
     return () => {
-      ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
-      ethereum.removeListener?.("chainChanged", handleChainChanged);
-      ethereum.removeListener?.("disconnect", handleDisconnect);
+      injectedProvider.removeListener?.("accountsChanged", handleAccountsChanged);
+      injectedProvider.removeListener?.("chainChanged", handleChainChanged);
+      injectedProvider.removeListener?.("disconnect", handleDisconnect);
     };
-  }, [clearConnection, getInjectedEthereum, manuallyDisconnected, setupConnection]);
+  }, [activeWallet, clearConnection, getProvider, manuallyDisconnected, setupConnection]);
 
-  // Extra guard: poll connected accounts so wallet UI changes are reflected even if provider events are flaky.
-  useEffect(() => {
-    if (manuallyDisconnected) return;
-    const ethereum = getInjectedEthereum();
-    if (!ethereum) return;
-
-    let cancelled = false;
-    const syncAccount = async () => {
-      if (cancelled) return;
-      try {
-        const accounts = await ethereum.request({ method: "eth_accounts" }) as string[];
-        if (!accounts || accounts.length === 0) {
-          if (address) clearConnection();
-          return;
-        }
-        const next = accounts[0].toLowerCase();
-        const current = address?.toLowerCase();
-        if (next !== current) {
-          const ethProvider = new ethers.BrowserProvider(ethereum as any);
-          await setupConnection(ethProvider, accounts[0]);
-        }
-      } catch (error) {
-        console.error("Failed to sync wallet account:", error);
-      }
-    };
-
-    const id = window.setInterval(() => { void syncAccount(); }, 1500);
-    void syncAccount();
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [address, clearConnection, getInjectedEthereum, manuallyDisconnected, setupConnection]);
-
-  const connect = async () => {
-    setIsConnecting(true);
+  const disconnect = useCallback(async () => {
+    const injectedProvider = activeWallet ? getProvider(activeWallet) : null;
     try {
-      const ethereum = getInjectedEthereum();
-      if (ethereum) {
-        const ethProvider = new ethers.BrowserProvider(ethereum as any);
-        const accounts = await ethProvider.send("eth_requestAccounts", []) as string[];
-        setManuallyDisconnected(false);
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("web3_manual_disconnect");
-        }
-        await setupConnection(ethProvider, accounts?.[0]);
-      } else {
-        throw new Error("No wallet found. Please install MetaMask or OKX Wallet.");
-      }
-    } catch (error) {
-      console.error("Failed to connect:", error);
-      throw error;
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const disconnect = async () => {
-    const ethereum = getInjectedEthereum();
-    try {
-      await ethereum?.request?.({
+      await injectedProvider?.request?.({
         method: "wallet_revokePermissions",
         params: [{ eth_accounts: {} }],
       });
     } catch {
-      // Some wallets do not support revokePermissions; local app disconnect still applies.
+      // Some wallets do not support revokePermissions
     }
     setManuallyDisconnected(true);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("web3_manual_disconnect", "1");
+      window.localStorage.removeItem("web3_last_wallet");
     }
     clearConnection();
-  };
+  }, [activeWallet, clearConnection, getProvider]);
+
+  const openWalletModal = useCallback(() => {
+    setShowWalletModal(true);
+  }, []);
+
+  const closeWalletModal = useCallback(() => {
+    setShowWalletModal(false);
+    setIsConnecting(false);
+  }, []);
 
   return (
     <Web3Context.Provider
@@ -264,12 +351,142 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         taskManager,
         paymentHub,
         usdc,
+        activeWallet,
+        wallets,
+        showWalletModal,
         connect,
         disconnect,
+        openWalletModal,
+        closeWalletModal,
       }}
     >
       {children}
+      {showWalletModal && <WalletSelectorModal />}
     </Web3Context.Provider>
+  );
+}
+
+// Wallet Selector Modal Component
+function WalletSelectorModal() {
+  const { wallets, connect, closeWalletModal, isConnecting } = useWeb3();
+  const [pendingWallet, setPendingWallet] = useState<WalletType>(null);
+
+  const handleSelect = async (walletId: WalletType) => {
+    if (!walletId) return;
+    setPendingWallet(walletId);
+    try {
+      await connect(walletId);
+    } catch (error) {
+      console.error("Connection failed:", error);
+    } finally {
+      setPendingWallet(null);
+    }
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeWalletModal();
+      }}
+    >
+      <div className="bg-[#0a0a0a] border border-white/20 w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div>
+            <h2 className="text-xl font-light text-white">Connect Wallet</h2>
+            <p className="text-xs text-white/40 mt-1">Select a wallet to connect to X Layer</p>
+          </div>
+          <button 
+            onClick={closeWalletModal}
+            className="text-white/40 hover:text-white transition"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Wallet Options */}
+        <div className="p-6 space-y-3">
+          {wallets.map((wallet) => (
+            <button
+              key={wallet.id}
+              onClick={() => wallet.isInstalled && handleSelect(wallet.id)}
+              disabled={!wallet.isInstalled || isConnecting}
+              className={`w-full flex items-center gap-4 p-4 border transition-all ${
+                wallet.isInstalled
+                  ? "border-white/20 hover:border-white/40 hover:bg-white/5 cursor-pointer"
+                  : "border-white/10 opacity-50 cursor-not-allowed"
+              }`}
+            >
+              <span className="text-2xl">{wallet.icon}</span>
+              <div className="flex-1 text-left">
+                <p className="text-white font-medium">{wallet.name}</p>
+                <p className="text-xs text-white/40">
+                  {wallet.isInstalled 
+                    ? "Click to connect" 
+                    : `Not installed • `}
+                  {!wallet.isInstalled && (
+                    <a 
+                      href={wallet.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Download
+                    </a>
+                  )}
+                </p>
+              </div>
+              {pendingWallet === wallet.id ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : wallet.isInstalled ? (
+                <svg className="w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              )}
+            </button>
+          ))}
+
+          {wallets.length === 0 && (
+            <div className="text-center py-8 text-white/40">
+              <p className="mb-4">No wallets detected</p>
+              <div className="space-y-2">
+                <a
+                  href="https://www.okx.com/web3"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition"
+                >
+                  Install OKX Wallet
+                </a>
+                <a
+                  href="https://metamask.io/download/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition"
+                >
+                  Install MetaMask
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6">
+          <p className="text-xs text-white/30 text-center">
+            By connecting, you agree to the terms of service
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

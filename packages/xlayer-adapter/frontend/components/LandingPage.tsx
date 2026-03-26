@@ -65,9 +65,8 @@ const HIGHLIGHTS = [
 ];
 
 export function LandingPage() {
-  const [showConnect, setShowConnect] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
-  const { connect, isConnecting, isConnected } = useWeb3();
+  const { openWalletModal, isConnected } = useWeb3();
   const { lang, toggleLang } = useLangStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -165,13 +164,7 @@ export function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleConnect = async () => {
-    try {
-      await connect();
-    } catch (error) {
-      console.error("Connection failed:", error);
-    }
-  };
+  const { openWalletModal } = useWeb3();
 
   if (isConnected) return null;
 
@@ -207,7 +200,7 @@ export function LandingPage() {
               {lang === 'en' ? 'EN' : '中文'}
             </button>
             <button
-              onClick={() => setShowConnect(true)}
+              onClick={openWalletModal}
               className="px-5 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 transition"
             >
               {t('connect', lang)}
@@ -237,7 +230,7 @@ export function LandingPage() {
               </p>
               <div className="flex gap-4">
                 <button
-                  onClick={() => setShowConnect(true)}
+                  onClick={openWalletModal}
                   className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2"
                 >
                   {t('enterSystem', lang)}
@@ -427,7 +420,7 @@ export function LandingPage() {
             }
           </p>
           <button
-            onClick={() => setShowConnect(true)}
+            onClick={openWalletModal}
             className="px-10 py-5 bg-white text-black font-medium hover:bg-white/90 transition text-lg"
           >
             {t('enterSystem', lang)}
@@ -448,39 +441,6 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* Connect Modal */}
-      {showConnect && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4">
-          <div className="bg-[#0a0a0f] border border-white/20 p-8 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium">{t('connect', lang)}</h3>
-              <button
-                onClick={() => setShowConnect(false)}
-                className="text-white/40 hover:text-white"
-              >
-                ×
-              </button>
-            </div>
-            <p className="text-white/60 mb-6 text-sm">
-              {lang === 'en' ? 'Select your wallet to continue' : '选择钱包继续'}
-            </p>
-            <button
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className="w-full py-4 bg-white text-black font-medium hover:bg-white/90 transition disabled:opacity-50 mb-3"
-            >
-              {isConnecting ? 'Connecting...' : 'MetaMask / OKX Wallet'}
-            </button>
-            <button
-              onClick={() => setShowConnect(false)}
-              className="w-full py-4 border border-white/20 hover:border-white/40 transition"
-            >
-              {t('cancel', lang)}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

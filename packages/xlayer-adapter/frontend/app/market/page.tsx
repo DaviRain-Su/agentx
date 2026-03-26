@@ -391,7 +391,7 @@ export default function MarketPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPublish, setShowPublish] = useState(false);
   const { agents, loading, reload } = useMarketAgents();
-  const { address, connect, isConnecting } = useWeb3();
+  const { address, openWalletModal, isConnecting } = useWeb3();
 
   const handleTry = (agentId: string) => {
     router.push(`/workflows?agent=${agentId}`);
@@ -440,7 +440,7 @@ export default function MarketPage() {
               </button>
             ) : (
               <button
-                onClick={connect}
+                onClick={openWalletModal}
                 disabled={isConnecting}
                 className="px-5 py-2.5 border border-white/30 text-white font-medium hover:bg-white/10 transition flex items-center gap-2 text-sm disabled:opacity-50"
               >
@@ -627,7 +627,7 @@ export default function MarketPage() {
             </button>
           ) : (
             <button
-              onClick={connect}
+              onClick={openWalletModal}
               disabled={isConnecting}
               className="p-6 border border-dashed border-white/10 hover:border-white/30 transition-all bg-transparent group flex flex-col items-center justify-center gap-3 min-h-[200px]"
             >
