@@ -1,4 +1,4 @@
-import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@agentx/shared-orchestrator';
+import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@agentxs/shared-orchestrator';
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 

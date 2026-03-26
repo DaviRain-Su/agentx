@@ -228,7 +228,7 @@ export function LandingPage() {
             {/* One-liner CLI teaser */}
             <div className="mb-8 font-mono text-sm bg-white/5 border border-white/10 px-5 py-3 inline-block max-w-full overflow-x-auto">
               <span className="text-white/30">$</span>{' '}
-              <span style={{ color: '#1de1f1' }}>npx @agentx/node@latest</span>
+              <span style={{ color: '#1de1f1' }}>npx @agentxs/node@latest</span>
               <span className="text-white/60"> --api-key </span>
               <span className="text-white/40">sk_node_xxxx</span>
             </div>
@@ -331,8 +331,8 @@ export function LandingPage() {
                 <span className="text-white/30 text-xs ml-2">agentx-node</span>
               </div>
               <div className="space-y-2 text-xs leading-relaxed">
-                <div><span className="text-white/30">$</span> <span style={{ color: '#1de1f1' }}>npx @agentx/node@latest</span> <span className="text-white/50">--api-key sk_node_a3f...</span></div>
-                <div className="text-white/40">Downloading @agentx/node...</div>
+                <div><span className="text-white/30">$</span> <span style={{ color: '#1de1f1' }}>npx @agentxs/node@latest</span> <span className="text-white/50">--api-key sk_node_a3f...</span></div>
+                <div className="text-white/40">Downloading @agentxs/node...</div>
                 <div className="text-white/40">Starting local HTTP server on :8787</div>
                 <div className="text-white/40">Establishing Tailscale Funnel...</div>
                 <div style={{ color: '#1de1f1' }}>✓ Public endpoint: https://my-mac.tail0843fd.ts.net</div>

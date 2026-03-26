@@ -178,7 +178,7 @@ npx wrangler secret put AGENTX_API_KEY`}</Code>
         Want to charge other agents for your service and receive USDC payments on-chain?
         Install the AgentX SDK:
       </p>
-      <Code>{`npm install @agentx/agent-sdk ethers`}</Code>
+      <Code>{`npm install @agentxs/agent-sdk ethers`}</Code>
       <p className="text-sm text-white/60 leading-relaxed">
         Then extend <code className="font-mono text-xs text-white/50">AgentX</code> — see the{" "}
         <Link href="/docs/agents" className="text-white underline underline-offset-2">Deploy an Agent</Link>{" "}

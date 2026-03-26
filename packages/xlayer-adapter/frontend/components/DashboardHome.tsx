@@ -287,12 +287,12 @@ export function DashboardHome() {
                     {lang === "en" ? "Option B — Local Agent (npx)" : "方案 B — 本地智能体（npx）"}
                   </span>
                   <div className="bg-black/40 border border-white/10 p-4 font-mono text-xs text-white/70 leading-relaxed">
-                    <div><span className="text-white/30">$</span> npx <span style={{ color: '#1de1f1' }}>@agentx/node@latest</span> \</div>
+                    <div><span className="text-white/30">$</span> npx <span style={{ color: '#1de1f1' }}>@agentxs/node@latest</span> \</div>
                     <div className="pl-4">--server-url <span className="text-white/50">{WORKER_URL}</span> \</div>
                     <div className="pl-4">--api-key <span className="text-white/50">{generatedKey}</span></div>
                   </div>
                   <div className="mt-2 flex justify-end">
-                    <CopyButton text={`npx @agentx/node@latest --server-url ${WORKER_URL} --api-key ${generatedKey}`} />
+                    <CopyButton text={`npx @agentxs/node@latest --server-url ${WORKER_URL} --api-key ${generatedKey}`} />
                   </div>
                 </div>
 

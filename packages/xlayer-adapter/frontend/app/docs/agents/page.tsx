@@ -35,10 +35,10 @@ export default function AgentsDocPage() {
 
       <H2>1 — Install the SDK</H2>
       <Code>{`# In your Cloudflare Worker project
-npm install @agentx/agent-sdk ethers
+npm install @agentxs/agent-sdk ethers
 
 # Or link from the monorepo
-# "dependencies": { "@agentx/agent-sdk": "file:../agent-sdk" }`}</Code>
+# "dependencies": { "@agentxs/agent-sdk": "file:../agent-sdk" }`}</Code>
 
       <H2>2 — Extend AgentX</H2>
       <p className="text-sm text-white/60 leading-relaxed mb-2">
@@ -46,7 +46,7 @@ npm install @agentx/agent-sdk ethers
         You get a deterministic on-chain wallet, USDC fee collection, A2A payment routing,
         and revenue distribution automatically.
       </p>
-      <Code>{`import { AgentX } from "@agentx/agent-sdk";
+      <Code>{`import { AgentX } from "@agentxs/agent-sdk";
 import { ethers } from "ethers";
 
 export class MySentimentAgent extends AgentX {
@@ -147,7 +147,7 @@ curl https://my-sentiment-agent.<your-subdomain>.workers.dev/info`}</Code>
       <p className="text-sm text-white/60 mb-3">
         <strong className="text-white">Option B — via the SDK:</strong>
       </p>
-      <Code>{`import { AgentRegistryService } from "@agentx/agent-sdk";
+      <Code>{`import { AgentRegistryService } from "@agentxs/agent-sdk";
 import { ethers } from "ethers";
 
 const provider = new ethers.JsonRpcProvider("https://xlayertestrpc.okx.com");

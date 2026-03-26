@@ -17,8 +17,3 @@
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
-</function_results>  </dev>
-
-<function_calls>
-<invoke name="write">
-<parameter name="path">/Users/davirian/dev/zig/gradience/packages/node-local/.env.example

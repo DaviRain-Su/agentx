@@ -1,11 +1,11 @@
 {
-  "name": "@agentx/shared-orchestrator",
+  "name": "@agentxs/shared-orchestrator",
   "version": "0.1.0",
   "description": "Shared workflow orchestration engine for AgentX decentralized agent network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist", "README.md"],
-  "keywords": ["agentx", "workflow", "orchestrator", "agent", "xlayer", "blockchain"],
+  "keywords": ["agentxs", "agentx", "workflow", "orchestrator", "agent", "xlayer", "blockchain"],
   "author": "AgentX Team",
   "license": "MIT",
   "scripts": {
