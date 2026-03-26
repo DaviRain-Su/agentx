@@ -1,12 +1,16 @@
 {
   "name": "@agentx/agent-sdk",
   "version": "0.1.0",
-  "description": "AgentX SDK — extend pi-worker agents with on-chain payments and the decentralized agent economy",
+  "description": "AgentX SDK — build AI agents for the decentralized AgentX network with on-chain A2A payments",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "keywords": ["agentx", "ai-agent", "cloudflare-worker", "a2a", "web3", "xlayer"],
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "ethers": "^6.0.0",

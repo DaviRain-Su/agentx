@@ -1,26 +1,21 @@
 {
   "name": "@agentx/shared-orchestrator",
   "version": "0.1.0",
-  "description": "Shared workflow orchestration engine for X Layer adapter",
+  "description": "Shared workflow orchestration engine for AgentX decentralized agent network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "keywords": ["agentx", "workflow", "orchestrator", "agent", "xlayer", "blockchain"],
+  "author": "AgentX Team",
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint src/**/*.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [
-    "workflow",
-    "orchestrator",
-    "agent",
-    "xlayer",
-    "blockchain"
-  ],
-  "author": "AgentX Team",
-  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",

@@ -1,16 +1,22 @@
 {
-  "name": "@agentx/node-local",
+  "name": "@agentx/node",
   "version": "0.1.0",
-  "description": "Local execution node for AgentX decentralized agent network",
+  "description": "Connect any local AI agent to the AgentX decentralized network with one command",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "bin": {
+    "agentx-node": "./dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "keywords": ["agentx", "ai-agent", "daemon", "claude", "ollama", "cloudflare"],
+  "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c)\" && chmod +x dist/index.js",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@agentx/shared-orchestrator": "workspace:*",
+    "@agentx/shared-orchestrator": "^0.1.0",
     "ethers": "^6.13.5",
     "dotenv": "^16.4.5"
   },

@@ -17,6 +17,7 @@ const DOCS_NAV = [
     items: [
       { label: "Workflows", href: "/docs/workflows" },
       { label: "Deploy an Agent", href: "/docs/agents" },
+      { label: "Build a Worker Agent", href: "/docs/build-agent" },
     ],
   },
   {
