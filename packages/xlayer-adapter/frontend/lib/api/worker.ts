@@ -61,6 +61,21 @@ export interface DeploySessionResponse {
   sessionId: string;
 }
 
+export interface NodeKeyResponse {
+  apiKey: string;
+  nodeId: string;
+  name: string;
+}
+
+export interface ActiveNode {
+  nodeId: string;
+  endpoint: string;
+  name: string;
+  model: string;
+  capabilities: string[];
+  lastSeen: number;
+}
+
 export const workerApi = {
   getHealth(workerBase?: string) {
     return requestJson<WorkerHealth>("/health", undefined, workerBase);
@@ -126,6 +141,22 @@ export const workerApi = {
       },
       workerBase
     );
+  },
+
+  generateNodeKey(name: string, workerBase?: string) {
+    return requestJson<NodeKeyResponse>(
+      "/api/nodes/generate-key",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      },
+      workerBase
+    );
+  },
+
+  getActiveNodes(workerBase?: string) {
+    return requestJson<ActiveNode[]>("/api/nodes/active", undefined, workerBase);
   },
 
   confirmTask(taskId: string, approved: boolean, workerBase?: string) {

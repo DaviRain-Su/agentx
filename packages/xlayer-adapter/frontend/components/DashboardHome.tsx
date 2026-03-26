@@ -3,9 +3,27 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "./DashboardLayout";
 import Link from "next/link";
-import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen } from "lucide-react";
+import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen, Copy, Check, Plus } from "lucide-react";
 import { useLangStore } from "@/store/lang";
-import { workerApi, type WorkerAgentEntry, type WorkerHealth } from "@/lib/api/worker";
+import { workerApi, type WorkerAgentEntry, type WorkerHealth, type ActiveNode } from "@/lib/api/worker";
+
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://agentx-worker.davirain-yin.workers.dev";
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button onClick={copy} className="flex items-center gap-1 text-xs text-white/40 hover:text-white transition px-2 py-1 border border-white/10 hover:border-white/30">
+      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
 
 export function DashboardHome() {
   const { lang } = useLangStore();
@@ -13,6 +31,10 @@ export function DashboardHome() {
   const [health, setHealth] = useState<WorkerHealth | null>(null);
   const [jobCount, setJobCount] = useState({ total: 0, running: 0 });
   const [latency, setLatency] = useState<number | null>(null);
+  const [activeNodes, setActiveNodes] = useState<ActiveNode[]>([]);
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [keyName, setKeyName] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     const t0 = Date.now();
@@ -27,11 +49,25 @@ export function DashboardHome() {
       .then((d: Record<string, WorkerAgentEntry>) => setAgents(d))
       .catch(() => {});
 
+    workerApi.getActiveNodes()
+      .then(setActiveNodes)
+      .catch(() => {});
+
     try {
       const jobs: Array<{ status?: string }> = JSON.parse(localStorage.getItem("a2a_jobs") || "[]");
       setJobCount({ total: jobs.length, running: jobs.filter(j => j.status === "running").length });
     } catch {}
   }, []);
+
+  const generateKey = async () => {
+    setGenerating(true);
+    try {
+      const res = await workerApi.generateNodeKey(keyName.trim() || "my-agent");
+      setGeneratedKey(res.apiKey);
+    } catch { /* ignore */ } finally {
+      setGenerating(false);
+    }
+  };
 
   const agentNames = Object.keys(agents);
   const agentCount = agentNames.length || "—";
@@ -180,6 +216,109 @@ export function DashboardHome() {
             })}
           </div>
         </div>
+        {/* Add Node to Network */}
+        <div>
+          <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] mb-6">
+            {lang === "en" ? "Connect Your Agent" : "接入你的智能体"}
+          </h2>
+          <div className="border border-white/10 p-6 bg-white/5 space-y-6">
+            {/* Step 1: Name + Generate */}
+            <div>
+              <p className="text-sm text-white/60 mb-4">
+                {lang === "en"
+                  ? "Generate an API key, then register your Cloudflare Worker or local agent with one command."
+                  : "生成 API Key，然后用一条命令将你的 Cloudflare Worker 或本地智能体接入网络。"}
+              </p>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="text"
+                  placeholder={lang === "en" ? "Agent name (optional)" : "智能体名称（可选）"}
+                  value={keyName}
+                  onChange={e => setKeyName(e.target.value)}
+                  className="flex-1 bg-black/40 border border-white/20 px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/50 max-w-xs"
+                />
+                <button
+                  onClick={generateKey}
+                  disabled={generating}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium border transition"
+                  style={{ borderColor: '#1de1f1', color: '#1de1f1' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  {generating
+                    ? (lang === "en" ? "Generating..." : "生成中...")
+                    : (lang === "en" ? "Generate API Key" : "生成 API Key")}
+                </button>
+              </div>
+            </div>
+
+            {/* Generated Key + Commands */}
+            {generatedKey && (
+              <div className="space-y-5 pt-2 border-t border-white/10">
+                {/* Key display */}
+                <div>
+                  <span className="text-xs text-white/40 uppercase tracking-widest block mb-2">API Key</span>
+                  <div className="flex items-center gap-3">
+                    <code className="font-mono text-sm bg-black/40 border border-white/10 px-4 py-2 flex-1 truncate" style={{ color: '#1de1f1' }}>
+                      {generatedKey}
+                    </code>
+                    <CopyButton text={generatedKey} />
+                  </div>
+                </div>
+
+                {/* Option A: CF Worker */}
+                <div>
+                  <span className="text-xs text-white/40 uppercase tracking-widest block mb-2">
+                    {lang === "en" ? "Option A — Cloudflare Worker" : "方案 A — Cloudflare Worker"}
+                  </span>
+                  <div className="bg-black/40 border border-white/10 p-4 font-mono text-xs text-white/70 leading-relaxed">
+                    <div><span className="text-white/30">$</span> curl -X POST {WORKER_URL}/api/nodes/connect \</div>
+                    <div className="pl-4">-H <span className="text-white/50">"Authorization: Bearer {generatedKey}"</span> \</div>
+                    <div className="pl-4">-H <span className="text-white/50">"Content-Type: application/json"</span> \</div>
+                    <div className="pl-4">-d <span className="text-white/50">'{"{"}"endpoint":"https://your-worker.workers.dev","name":"{keyName || "my-agent"}","model":"your-model"{"}"}'</span></div>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <CopyButton text={`curl -X POST ${WORKER_URL}/api/nodes/connect -H "Authorization: Bearer ${generatedKey}" -H "Content-Type: application/json" -d '{"endpoint":"https://your-worker.workers.dev","name":"${keyName || "my-agent"}","model":"your-model"}'`} />
+                  </div>
+                </div>
+
+                {/* Option B: Local / npx */}
+                <div>
+                  <span className="text-xs text-white/40 uppercase tracking-widest block mb-2">
+                    {lang === "en" ? "Option B — Local Agent (npx)" : "方案 B — 本地智能体（npx）"}
+                  </span>
+                  <div className="bg-black/40 border border-white/10 p-4 font-mono text-xs text-white/70 leading-relaxed">
+                    <div><span className="text-white/30">$</span> npx <span style={{ color: '#1de1f1' }}>@agentx/node@latest</span> \</div>
+                    <div className="pl-4">--server-url <span className="text-white/50">{WORKER_URL}</span> \</div>
+                    <div className="pl-4">--api-key <span className="text-white/50">{generatedKey}</span></div>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <CopyButton text={`npx @agentx/node@latest --server-url ${WORKER_URL} --api-key ${generatedKey}`} />
+                  </div>
+                </div>
+
+                <p className="text-xs text-white/30">
+                  {lang === "en"
+                    ? "Your agent will appear in Agent Swarm within seconds. Heartbeat keeps it alive for 5 minutes per ping."
+                    : "你的智能体将在几秒内出现在智能体蜂群中。每次心跳保持 5 分钟在线状态。"}
+                </p>
+              </div>
+            )}
+
+            {/* Active nodes count */}
+            {activeNodes.length > 0 && (
+              <div className="pt-4 border-t border-white/10 flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style={{ background: '#1de1f1' }} />
+                <span className="text-sm text-white/50">
+                  {activeNodes.length} {lang === "en" ? "node(s) currently online in the swarm" : "个节点当前在线"}
+                </span>
+                <Link href="/market" className="text-xs ml-auto" style={{ color: '#1de1f1' }}>
+                  {lang === "en" ? "View Swarm →" : "查看蜂群 →"}
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </DashboardLayout>
   );

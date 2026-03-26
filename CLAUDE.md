@@ -46,7 +46,7 @@ npm run lint         # next lint
 
 ## Architecture
 
-### Agent Wallet Derivation
+### Agent Wallet Derivation (MVP)
 All agent wallets are deterministic — no per-agent key management:
 ```typescript
 privateKey = keccak256(`${masterKey}:${agentName}`)
@@ -54,6 +54,13 @@ wallet = new ethers.Wallet(privateKey)
 ```
 Standard agent names: `"orchestrator"`, `"price-oracle"`, `"trade-strategy"`.
 One `NODE_PRIVATE_KEY` env var controls all agent wallets.
+
+**Live agent addresses (from current NODE_PRIVATE_KEY):**
+- orchestrator: `0xbE24E6aa9063a7d4885E84E2427Ec6aE31144Ee0`
+- price-oracle: `0x1DAaE012c914bb010D2bD5aF3a90d5b0D4cf0ff7`
+- trade-strategy: `0x21c89513dFd1f9639e7A4CF1ca518c971430a756`
+
+**NOTE:** This is an intentional MVP trade-off. See `docs/SUBMISSION.md` § "Agent Wallet Architecture" for the production roadmap (Per-Agent Keys → AA Smart Accounts → TEE-backed wallets).
 
 ### A2A Payment Flow
 `A2APaymentWorkflow` (Cloudflare Durable Workflow) executes 5 atomic steps:

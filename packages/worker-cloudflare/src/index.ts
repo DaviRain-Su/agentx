@@ -143,12 +143,35 @@ export default {
       return handleCodegenDownload(request, env);
     }
 
+    // ── Node Registry (KV-backed indexer) ────────────────────────────────────
+    // POST /api/nodes/generate-key  — issue sk_node_xxx, no auth required
+    // POST /api/nodes/connect       — register node endpoint (Bearer auth)
+    // POST /api/nodes/heartbeat     — refresh node alive TTL (Bearer auth)
+    // GET  /api/nodes/active        — list online nodes (public)
+
+    if (url.pathname === "/api/nodes/generate-key" && request.method === "POST") {
+      return handleNodeGenerateKey(request, env);
+    }
+
+    if (url.pathname === "/api/nodes/connect" && request.method === "POST") {
+      return handleNodeConnect(request, env);
+    }
+
+    if (url.pathname === "/api/nodes/heartbeat" && request.method === "POST") {
+      return handleNodeHeartbeat(request, env);
+    }
+
+    if (url.pathname === "/api/nodes/active" && request.method === "GET") {
+      return handleNodeActive(env);
+    }
+
     // ── Agent Addresses ───────────────────────────────────────────────────────
     // GET /api/agents — returns derived wallet addresses for all 3 demo agents
 
     if (url.pathname === "/api/agents" && request.method === "GET") {
+      // NODE_PRIVATE_KEY is optional — only needed for A2A demo agents.
       if (!env.NODE_PRIVATE_KEY) {
-        return Response.json({ error: "NODE_PRIVATE_KEY not set" }, { status: 503, headers: CORS });
+        return Response.json({}, { headers: CORS });
       }
       // Use agent-sdk as single source of truth for agent info
       const provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
@@ -220,6 +243,10 @@ export default {
     }
 
     // ── ExecutionNode (decentralized task execution) ─────────────────────────
+
+    if (!env.NODE_PRIVATE_KEY) {
+      return Response.json({ error: "Not found" }, { status: 404, headers: CORS });
+    }
 
     if (!node) {
       try {
@@ -539,6 +566,95 @@ async function handleCodegenDownload(request: Request, env: Env): Promise<Respon
   const downloads = createDownloadHandler(env.CODEGEN_FILES, env.DOWNLOAD_SECRET, "/api/codegen/download/");
   const served = await downloads.serve(request);
   return served || Response.json({ error: "Invalid or expired download URL" }, { status: 404, headers: CORS });
+}
+
+// ─── Node Registry Handlers ───────────────────────────────────────────────────
+
+/** Verify Bearer sk_node_xxx token, return { nodeId, name } or null */
+async function authNode(request: Request, env: Env): Promise<{ nodeId: string; name: string } | null> {
+  const key = request.headers.get("Authorization")?.replace("Bearer ", "").trim();
+  if (!key?.startsWith("sk_node_")) return null;
+  const raw = await env.AGENTX_KV.get(`node_key:${key}`);
+  return raw ? JSON.parse(raw) : null;
+}
+
+/** POST /api/nodes/generate-key — create a new node API key */
+async function handleNodeGenerateKey(request: Request, env: Env): Promise<Response> {
+  let body: { name?: string } = {};
+  try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+  const apiKey = "sk_node_" + Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+  const nodeId = crypto.randomUUID();
+  const name = body.name?.trim() || "unnamed";
+
+  await env.AGENTX_KV.put(`node_key:${apiKey}`, JSON.stringify({
+    nodeId,
+    name,
+    createdAt: Date.now(),
+  }));
+
+  return Response.json({ apiKey, nodeId, name }, { headers: CORS });
+}
+
+/** POST /api/nodes/connect — register node endpoint */
+async function handleNodeConnect(request: Request, env: Env): Promise<Response> {
+  const info = await authNode(request, env);
+  if (!info) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+  }
+
+  let body: { endpoint?: string; name?: string; model?: string; capabilities?: unknown } = {};
+  try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+  if (!body.endpoint) {
+    return Response.json({ error: "endpoint is required" }, { status: 400, headers: CORS });
+  }
+
+  await env.AGENTX_KV.put(`node_alive:${info.nodeId}`, JSON.stringify({
+    nodeId: info.nodeId,
+    endpoint: body.endpoint,
+    name: body.name || info.name,
+    model: body.model || "unknown",
+    capabilities: body.capabilities || [],
+    lastSeen: Date.now(),
+  }), { expirationTtl: 300 });
+
+  return Response.json({ ok: true, nodeId: info.nodeId }, { headers: CORS });
+}
+
+/** POST /api/nodes/heartbeat — refresh node alive TTL */
+async function handleNodeHeartbeat(request: Request, env: Env): Promise<Response> {
+  const info = await authNode(request, env);
+  if (!info) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+  }
+
+  const existing = await env.AGENTX_KV.get(`node_alive:${info.nodeId}`);
+  if (!existing) {
+    return Response.json({ error: "Node not registered. Call /api/nodes/connect first." }, { status: 404, headers: CORS });
+  }
+
+  const data = JSON.parse(existing);
+  data.lastSeen = Date.now();
+
+  await env.AGENTX_KV.put(`node_alive:${info.nodeId}`, JSON.stringify(data), { expirationTtl: 300 });
+
+  return Response.json({ ok: true, nodeId: info.nodeId, lastSeen: data.lastSeen }, { headers: CORS });
+}
+
+/** GET /api/nodes/active — list all online nodes */
+async function handleNodeActive(env: Env): Promise<Response> {
+  const list = await env.AGENTX_KV.list({ prefix: "node_alive:" });
+
+  const nodes = await Promise.all(
+    list.keys.map(async (k) => {
+      const raw = await env.AGENTX_KV.get(k.name);
+      return raw ? JSON.parse(raw) : null;
+    })
+  );
+
+  return Response.json(nodes.filter(Boolean), { headers: CORS });
 }
 
 // ─── ExecutionNode Init ───────────────────────────────────────────────────────
