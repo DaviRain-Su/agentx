@@ -1,20 +1,25 @@
 {
-  "name": "@agentx/node-local",
+  "name": "@agentx/node",
   "version": "0.1.0",
-  "description": "Local execution node for AgentX decentralized agent network",
+  "description": "AgentX Node Daemon — join the AgentX network with one command",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "agentx-node": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts"
   },
   "dependencies": {
-    "@agentx/shared-orchestrator": "workspace:*",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.5",
     "ethers": "^6.13.5",
-    "dotenv": "^16.4.5"
+    "express": "^4.21.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "@types/node": "^20",
     "ts-node": "^10.9.2",
     "typescript": "^5"

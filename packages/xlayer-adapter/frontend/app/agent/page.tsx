@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useWeb3 } from "@/components/Web3Provider";
 import { useAppSettingsStore } from "@/store/settings";
@@ -145,8 +146,15 @@ export default function AgentPage() {
   const { address, signer, usdc } = useWeb3();
   const { workerUrl: configuredWorkerUrl, agentModel } = useAppSettingsStore();
   const workerUrl = configuredWorkerUrl.replace(/\/+$/, "");
+  const searchParams = useSearchParams();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('marketplace');
+  // When ?endpoint= is set (e.g. from market page clicking a local node),
+  // use that URL as the base instead of the CF Worker URL.
+  const externalEndpoint = searchParams.get("endpoint") || null;
+  const externalAgentName = searchParams.get("name") || null;
+  const activeBase = (externalEndpoint || workerUrl).replace(/\/+$/, "");
+
+  const [viewMode, setViewMode] = useState<ViewMode>(externalEndpoint ? 'chat' : 'marketplace');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   
@@ -179,11 +187,11 @@ export default function AgentPage() {
 
   const toWorkerUrl = (path: string) => {
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    return `${workerUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    return `${activeBase}${path.startsWith("/") ? path : `/${path}`}`;
   };
 
   const callWorker = async <T,>(path: string, init?: RequestInit): Promise<T> => {
-    if (!workerUrl) throw new Error("NEXT_PUBLIC_WORKER_URL is not configured");
+    if (!activeBase) throw new Error("Worker URL is not configured");
     const response = await fetch(toWorkerUrl(path), {
       ...init,
       headers: {
@@ -202,6 +210,22 @@ export default function AgentPage() {
     }
     return data as T;
   };
+
+  // Auto-connect when navigating from market page with ?endpoint=
+  useEffect(() => {
+    if (!externalEndpoint) return;
+    const externalAgent: Agent = {
+      id: "external",
+      name: externalAgentName || "Local Agent",
+      description: "Local node connected via AgentX network",
+      creator: "local",
+      price: "0",
+      isActive: true,
+      type: "free",
+    };
+    startChat(externalAgent);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalEndpoint]);
 
   // Purchase agent access
   const purchaseAccess = async (agent: Agent): Promise<boolean> => {

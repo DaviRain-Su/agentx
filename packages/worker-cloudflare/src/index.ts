@@ -147,8 +147,10 @@ export default {
     // GET /api/agents — returns derived wallet addresses for all 3 demo agents
 
     if (url.pathname === "/api/agents" && request.method === "GET") {
+      // NODE_PRIVATE_KEY is optional — only needed for A2A demo agents.
+      // Without it, return empty registry (Worker operates as pure indexer).
       if (!env.NODE_PRIVATE_KEY) {
-        return Response.json({ error: "NODE_PRIVATE_KEY not set" }, { status: 503, headers: CORS });
+        return Response.json({}, { headers: CORS });
       }
       // Use agent-sdk as single source of truth for agent info
       const provider = new ethers.JsonRpcProvider(env.XLAYER_RPC_URL);
@@ -206,6 +208,28 @@ export default {
         { expirationTtl: 3600 }
       );
       return Response.json({ ok: true, taskId, approved }, { headers: CORS });
+    }
+
+    // ── Node Network ─────────────────────────────────────────────────────────
+    // POST /api/nodes/generate-key  — 生成 API Key（前端 Dashboard 调用）
+    // POST /api/nodes/connect       — daemon 注册 endpoint（Bearer auth）
+    // POST /api/nodes/heartbeat     — 节点保活（Bearer auth）
+    // GET  /api/nodes/active        — 列出所有在线节点（公开）
+
+    if (url.pathname === "/api/nodes/generate-key" && request.method === "POST") {
+      return handleGenerateNodeKey(env);
+    }
+
+    if (url.pathname === "/api/nodes/connect" && request.method === "POST") {
+      return handleNodeConnect(request, env);
+    }
+
+    if (url.pathname === "/api/nodes/heartbeat" && request.method === "POST") {
+      return handleNodeHeartbeat(request, env);
+    }
+
+    if (url.pathname === "/api/nodes/active" && request.method === "GET") {
+      return handleActiveNodes(env);
     }
 
     // ── Health ───────────────────────────────────────────────────────────────
@@ -539,6 +563,116 @@ async function handleCodegenDownload(request: Request, env: Env): Promise<Respon
   const downloads = createDownloadHandler(env.CODEGEN_FILES, env.DOWNLOAD_SECRET, "/api/codegen/download/");
   const served = await downloads.serve(request);
   return served || Response.json({ error: "Invalid or expired download URL" }, { status: 404, headers: CORS });
+}
+
+// ─── Node Network Handlers ────────────────────────────────────────────────────
+
+/** 生成随机十六进制字符串 */
+function randomHex(bytes: number): string {
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** 从请求头解析 Bearer API Key，返回节点信息或 null */
+async function authNode(
+  request: Request,
+  env: Env
+): Promise<{ nodeId: string; name: string } | null> {
+  const auth = request.headers.get("Authorization") || "";
+  const apiKey = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  if (!apiKey.startsWith("sk_node_")) return null;
+  const raw = await env.AGENTX_KV.get(`node_key:${apiKey}`);
+  return raw ? (JSON.parse(raw) as { nodeId: string; name: string }) : null;
+}
+
+/** POST /api/nodes/generate-key — 生成并存储节点 API Key */
+async function handleGenerateNodeKey(env: Env): Promise<Response> {
+  const apiKey = `sk_node_${randomHex(32)}`;
+  const nodeId = crypto.randomUUID();
+  await env.AGENTX_KV.put(
+    `node_key:${apiKey}`,
+    JSON.stringify({ nodeId, name: "unnamed", createdAt: Date.now() })
+  );
+  return Response.json({ apiKey, nodeId }, { headers: CORS });
+}
+
+/** POST /api/nodes/connect — daemon 上报 endpoint，刷新活跃状态 */
+async function handleNodeConnect(request: Request, env: Env): Promise<Response> {
+  const node = await authNode(request, env);
+  if (!node) {
+    return Response.json({ error: "Invalid or missing API key" }, { status: 401, headers: CORS });
+  }
+
+  let body: { endpoint?: string; name?: string; model?: string; capabilities?: string[] } = {};
+  try { body = await request.json() as typeof body; } catch { /* ok */ }
+
+  if (!body.endpoint) {
+    return Response.json({ error: "endpoint is required" }, { status: 400, headers: CORS });
+  }
+
+  const name = body.name || node.name;
+
+  // 更新 node_key 里的名字
+  await env.AGENTX_KV.put(
+    `node_key:${request.headers.get("Authorization")!.slice(7).trim()}`,
+    JSON.stringify({ nodeId: node.nodeId, name, createdAt: Date.now() })
+  );
+
+  // 存活跃状态，5 分钟 TTL
+  await env.AGENTX_KV.put(
+    `node_alive:${node.nodeId}`,
+    JSON.stringify({
+      nodeId: node.nodeId,
+      name,
+      endpoint: body.endpoint,
+      model: body.model || "unknown",
+      capabilities: body.capabilities || ["chat"],
+      lastSeen: Date.now(),
+    }),
+    { expirationTtl: 300 }
+  );
+
+  return Response.json({ ok: true, nodeId: node.nodeId, name }, { headers: CORS });
+}
+
+/** POST /api/nodes/heartbeat — 刷新节点存活 TTL */
+async function handleNodeHeartbeat(request: Request, env: Env): Promise<Response> {
+  const node = await authNode(request, env);
+  if (!node) {
+    return Response.json({ error: "Invalid or missing API key" }, { status: 401, headers: CORS });
+  }
+
+  const existing = await env.AGENTX_KV.get(`node_alive:${node.nodeId}`);
+  if (!existing) {
+    return Response.json({ error: "Node not connected — call /api/nodes/connect first" }, { status: 404, headers: CORS });
+  }
+
+  const data = JSON.parse(existing) as Record<string, unknown>;
+  data.lastSeen = Date.now();
+
+  await env.AGENTX_KV.put(
+    `node_alive:${node.nodeId}`,
+    JSON.stringify(data),
+    { expirationTtl: 300 }
+  );
+
+  return Response.json({ ok: true, nodeId: node.nodeId }, { headers: CORS });
+}
+
+/** GET /api/nodes/active — 列出所有在线节点 */
+async function handleActiveNodes(env: Env): Promise<Response> {
+  const list = await env.AGENTX_KV.list({ prefix: "node_alive:" });
+  const nodes = await Promise.all(
+    list.keys.map(async (k) => {
+      const raw = await env.AGENTX_KV.get(k.name);
+      return raw ? JSON.parse(raw) : null;
+    })
+  );
+  return Response.json(
+    nodes.filter(Boolean),
+    { headers: CORS }
+  );
 }
 
 // ─── ExecutionNode Init ───────────────────────────────────────────────────────

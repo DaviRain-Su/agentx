@@ -3,16 +3,52 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "./DashboardLayout";
 import Link from "next/link";
-import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen } from "lucide-react";
+import { Workflow, ShoppingCart, Users, ClipboardList, ArrowRight, Activity, Cpu, Shield, Terminal, BookOpen, Plus, Copy, Check, Loader2 } from "lucide-react";
 import { useLangStore } from "@/store/lang";
 import { workerApi, type WorkerAgentEntry, type WorkerHealth } from "@/lib/api/worker";
+import { useAppSettingsStore } from "@/store/settings";
 
 export function DashboardHome() {
   const { lang } = useLangStore();
+  const { workerUrl: configuredWorkerUrl } = useAppSettingsStore();
+  const workerUrl = configuredWorkerUrl.replace(/\/+$/, "");
   const [agents, setAgents] = useState<Record<string, WorkerAgentEntry>>({});
   const [health, setHealth] = useState<WorkerHealth | null>(null);
   const [jobCount, setJobCount] = useState({ total: 0, running: 0 });
   const [latency, setLatency] = useState<number | null>(null);
+
+  // Add Node state
+  const [generatingKey, setGeneratingKey] = useState(false);
+  const [nodeApiKey, setNodeApiKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  // 始终用生产 Worker URL 注册节点，不受 settings 里的本地配置影响
+  const NETWORK_URL = "https://agentx-worker.davirain-yin.workers.dev";
+
+  const handleGenerateKey = async () => {
+    setGeneratingKey(true);
+    setNodeApiKey(null);
+    setKeyError(null);
+    try {
+      const { apiKey } = await workerApi.generateNodeKey(NETWORK_URL);
+      setNodeApiKey(apiKey);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
+
+  const nodeCommand = nodeApiKey
+    ? `npx @agentx/node@latest --server-url ${NETWORK_URL} --api-key ${nodeApiKey}`
+    : "";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(nodeCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     const t0 = Date.now();
@@ -180,6 +216,68 @@ export function DashboardHome() {
             })}
           </div>
         </div>
+        {/* Add Node */}
+        <div>
+          <h2 className="text-xs text-white/40 uppercase tracking-[0.2em] mb-6">
+            {lang === "en" ? "Join as Node" : "加入为节点"}
+          </h2>
+          <div className="border border-white/10 p-6 bg-white/5 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-white font-medium">
+                  {lang === "en" ? "Run your local AI on the network" : "把你本地的 AI 接入网络"}
+                </p>
+                <p className="text-sm text-white/40 mt-1">
+                  {lang === "en"
+                    ? "Generate an API key, then run one command. Your agent joins instantly."
+                    : "生成 API Key，跑一条命令，你的 agent 立刻加入网络。"}
+                </p>
+              </div>
+              <button
+                onClick={handleGenerateKey}
+                disabled={generatingKey}
+                className="shrink-0 px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {generatingKey
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />{lang === "en" ? "Generating..." : "生成中..."}</>
+                  : <><Plus className="w-4 h-4" />{lang === "en" ? "Add Node" : "添加节点"}</>
+                }
+              </button>
+            </div>
+
+            {keyError && (
+              <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 px-3 py-2">
+                {keyError}
+              </p>
+            )}
+
+            {nodeApiKey && (
+              <div className="space-y-3">
+                <p className="text-xs text-white/40 uppercase tracking-widest">
+                  {lang === "en" ? "Run this command on your machine:" : "在你的机器上运行这条命令："}
+                </p>
+                <div className="flex items-start gap-2">
+                  <code className="flex-1 bg-black border border-white/10 px-4 py-3 text-sm text-green-400 font-mono break-all">
+                    {nodeCommand}
+                  </code>
+                  <button
+                    onClick={handleCopy}
+                    className="shrink-0 p-3 border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition"
+                    title={lang === "en" ? "Copy" : "复制"}
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-white/30">
+                  {lang === "en"
+                    ? "Make sure ANTHROPIC_API_KEY is set in your environment. Requires cloudflared for public access."
+                    : "确保你的环境变量里有 ANTHROPIC_API_KEY。需要安装 cloudflared 才能对外访问。"}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </DashboardLayout>
   );

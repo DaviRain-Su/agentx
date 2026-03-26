@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useWeb3 } from "@/components/Web3Provider";
 import { useLangStore } from "@/store/lang";
-import { Search, Zap, Plus, X, Loader2, CheckCircle, ExternalLink, RefreshCw, Wallet } from "lucide-react";
+import { Search, Zap, Plus, X, Loader2, CheckCircle, ExternalLink, RefreshCw, Wallet, MessageSquare } from "lucide-react";
 import { ethers } from "ethers";
 import { workerApi } from "@/lib/api/worker";
 
@@ -61,9 +61,11 @@ interface MarketAgent {
   category: string;
   featured?: boolean;
   address?: string;
-  source: "worker" | "registry";
+  source: "worker" | "registry" | "node";
   capabilities: string[];
   owner?: string;
+  endpoint?: string;   // live endpoint for local nodes
+  model?: string;
 }
 
 function useMarketAgents() {
@@ -99,13 +101,37 @@ function useMarketAgents() {
       }
     } catch { /* Worker offline — skip */ }
 
-    // 2. AgentRegistry on-chain — user-published agents via registerAgent()
+    // 2. CF Worker 活跃节点（daemon 注册的，实时在线）
+    try {
+      const activeNodes = await workerApi.getActiveNodes();
+      console.log("[market] active nodes:", activeNodes);
+      for (const node of activeNodes) {
+        if (results.some(a => a.name === node.name)) continue;
+        results.push({
+          id: `node_${node.nodeId}`,
+          name: node.name,
+          subtitle: `Local Node · ${node.model}`,
+          description: `在线本地节点，通过 AgentX daemon 接入网络`,
+          price: "Free",
+          category: node.capabilities.includes("price_oracle") ? "Oracle" : "AI",
+          source: "node",
+          capabilities: node.capabilities,
+          endpoint: node.endpoint,
+          model: node.model,
+        });
+      }
+    } catch { /* Worker 离线则跳过 */ }
+
+    // 3. AgentRegistry on-chain — user-published agents via registerAgent()
     try {
       const provider = new ethers.JsonRpcProvider(XLAYER_RPC);
-      const iface = new ethers.Interface([
+      const eventIface = new ethers.Interface([
         "event AgentRegistered(uint256 indexed agentId, address indexed owner, string name)",
       ]);
-      const topic = iface.getEvent("AgentRegistered")!.topicHash;
+      const fnIface = new ethers.Interface([
+        "function registerAgent(string name, string metadataURI, bytes32[] capabilities)",
+      ]);
+      const topic = eventIface.getEvent("AgentRegistered")!.topicHash;
       const REGISTRY = "0x8004A818BFB912233c491871b3d84c89A494BD9e";
       const logs = await provider.getLogs({
         address: REGISTRY,
@@ -115,24 +141,70 @@ function useMarketAgents() {
       });
       for (const log of logs) {
         try {
-          const parsed = iface.parseLog(log);
+          const parsed = eventIface.parseLog(log);
           if (!parsed) continue;
           const agentId = parsed.args.agentId?.toString();
           const owner = parsed.args.owner as string;
           const name = parsed.args.name as string;
           // Skip if already in results from Worker (by name match)
           if (results.some(a => a.name.toLowerCase() === name.toLowerCase())) continue;
+
+          // Try to decode metadataURI from transaction input
+          let metadataURI = "";
+          let endpoint: string | undefined;
+          let model: string | undefined;
+          let description = `Published by ${owner.slice(0, 6)}...${owner.slice(-4)} via AgentRegistry ERC-8004`;
+          let price = "—";
+          let capabilities: string[] = [];
+
+          try {
+            const tx = await provider.getTransaction(log.transactionHash);
+            if (tx) {
+              const decoded = fnIface.decodeFunctionData("registerAgent", tx.data);
+              metadataURI = decoded[1] as string;
+            }
+          } catch { /* skip tx decode errors */ }
+
+          // If we have a metadata URL, try fetching it for endpoint + model
+          if (metadataURI) {
+            try {
+              const res = await fetch(metadataURI, { signal: AbortSignal.timeout(4000) });
+              if (res.ok) {
+                const meta = await res.json() as {
+                  endpoint?: string;
+                  model?: string;
+                  description?: string;
+                  pricing?: { perCall?: string };
+                  capabilities?: string[];
+                };
+                endpoint = meta.endpoint;
+                model = meta.model;
+                if (meta.description) description = meta.description;
+                if (meta.pricing?.perCall && meta.pricing.perCall !== "0") {
+                  price = `${meta.pricing.perCall} USDC`;
+                } else if (meta.pricing?.perCall === "0") {
+                  price = "Free";
+                }
+                if (meta.capabilities?.length) capabilities = meta.capabilities;
+              }
+            } catch { /* metadata fetch failed — node offline */ }
+          }
+
           results.push({
             id: `registry_${agentId}`,
             name,
-            subtitle: `Registered on X Layer · ID #${agentId}`,
-            description: `Published by ${owner.slice(0, 6)}...${owner.slice(-4)} via AgentRegistry ERC-8004`,
-            price: "—",
-            category: "AI",
+            subtitle: model
+              ? `Local Node · ${model} · ID #${agentId}`
+              : `Registered on X Layer · ID #${agentId}`,
+            description,
+            price,
+            category: capabilities.includes("price_oracle") ? "Oracle" : "AI",
             source: "registry",
-            capabilities: [],
+            capabilities,
             address: owner,
             owner,
+            endpoint,
+            model,
           });
         } catch { /* skip malformed log */ }
       }
@@ -397,6 +469,14 @@ export default function MarketPage() {
     router.push(`/workflows?agent=${agentId}`);
   };
 
+  const handleChat = (agent: MarketAgent) => {
+    if (agent.endpoint) {
+      router.push(`/agent?endpoint=${encodeURIComponent(agent.endpoint)}&name=${encodeURIComponent(agent.name)}`);
+    } else {
+      handleTry(agent.id);
+    }
+  };
+
   const filteredAgents = agents.filter((agent) => {
     const matchesCategory = activeCategory === "All" || agent.category === activeCategory;
     const matchesSearch =
@@ -546,6 +626,8 @@ export default function MarketPage() {
             {" · "}
             {agents.filter(a => a.source === "worker").length} {lang === "en" ? "live" : "在线"}
             {" · "}
+            {agents.filter(a => a.source === "node").length} {lang === "en" ? "local nodes" : "本地节点"}
+            {" · "}
             {agents.filter(a => a.source === "registry").length} {lang === "en" ? "registered" : "已注册"}
           </p>
         )}
@@ -567,9 +649,11 @@ export default function MarketPage() {
                 <span className={`text-[10px] px-2 py-0.5 border ${
                   agent.source === "worker"
                     ? "border-white/30 text-white/60"
-                    : "border-white/10 text-white/30"
+                    : agent.source === "node" || agent.endpoint
+                      ? "border-green-400/40 text-green-400/80"
+                      : "border-white/10 text-white/30"
                 }`}>
-                  {agent.source === "worker" ? "LIVE" : "ON-CHAIN"}
+                  {agent.source === "worker" ? "LIVE" : agent.source === "node" ? "LOCAL" : agent.endpoint ? "LOCAL" : "ON-CHAIN"}
                 </span>
               </div>
 
@@ -596,13 +680,24 @@ export default function MarketPage() {
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleTry(agent.id)}
-                  className="text-sm text-white/60 hover:text-white flex items-center gap-1 transition"
-                >
-                  <Zap className="w-3 h-3" />
-                  {lang === "en" ? "Try" : "体验"}
-                </button>
+                {agent.endpoint ? (
+                  <button
+                    onClick={() => handleChat(agent)}
+                    className="text-sm text-green-400 hover:text-green-300 flex items-center gap-1 transition"
+                    title={agent.endpoint}
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    {lang === "en" ? "Chat" : "对话"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleTry(agent.id)}
+                    className="text-sm text-white/60 hover:text-white flex items-center gap-1 transition"
+                  >
+                    <Zap className="w-3 h-3" />
+                    {lang === "en" ? "Try" : "体验"}
+                  </button>
+                )}
               </div>
             </div>
           ))}
