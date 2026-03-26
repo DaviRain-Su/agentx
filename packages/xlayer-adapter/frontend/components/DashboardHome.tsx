@@ -169,13 +169,13 @@ export function DashboardHome() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+          <div className="border border-[#1de1f1]/20 p-6 hover:border-[#1de1f1]/50 transition-all bg-[#1de1f1]/5">
             <div className="flex items-start justify-between mb-4">
               <span className="text-xs text-white/40 uppercase tracking-widest">Active Agents</span>
-              <Cpu className="w-5 h-5 text-white/60" />
+              <Cpu className="w-5 h-5" style={{ color: '#1de1f1' }} />
             </div>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-4xl font-light text-white">{agentCount}</h2>
+              <h2 className="text-4xl font-light" style={{ color: '#1de1f1' }}>{agentCount}</h2>
               <span className="text-white/40">on-chain</span>
             </div>
             <div className="mt-4 text-sm text-white/60">
@@ -183,13 +183,13 @@ export function DashboardHome() {
             </div>
           </div>
 
-          <div className="border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+          <div className="border border-white/10 p-6 hover:border-[#1de1f1]/30 transition-all bg-white/5">
             <div className="flex items-start justify-between mb-4">
               <span className="text-xs text-white/40 uppercase tracking-widest">Node Status</span>
               <Shield className="w-5 h-5 text-white/60" />
             </div>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-4xl font-light text-white">
+              <h2 className="text-4xl font-light" style={nodeOk ? { color: '#1de1f1' } : undefined}>
                 {health ? (nodeOk ? "ONLINE" : "ERROR") : "—"}
               </h2>
             </div>
@@ -221,16 +221,16 @@ export function DashboardHome() {
             {MODULES.map((module) => {
               const Icon = module.icon;
               return (
-                <Link key={module.id} href={module.href} className="group border border-white/10 p-6 hover:border-white/30 transition-all bg-white/5">
+                <Link key={module.id} href={module.href} className="group border border-white/10 p-6 hover:border-[#1de1f1]/40 transition-all bg-white/5">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 border border-white/20 flex items-center justify-center group-hover:border-white/50 transition">
-                      <Icon className="w-6 h-6 text-white/60 group-hover:text-white" />
+                    <div className="w-12 h-12 border border-white/20 flex items-center justify-center group-hover:border-[#1de1f1]/60 transition">
+                      <Icon className="w-6 h-6 text-white/60 group-hover:text-[#1de1f1] transition" />
                     </div>
                     <span className="text-xs text-white/40">{module.stats}</span>
                   </div>
-                  <h3 className="text-xl font-medium text-white mb-1">{lang === "en" ? module.title : module.titleZh}</h3>
+                  <h3 className="text-xl font-medium text-white mb-1 group-hover:text-[#1de1f1] transition">{lang === "en" ? module.title : module.titleZh}</h3>
                   <p className="text-sm text-white/50 mb-4">{lang === "en" ? module.desc : module.descZh}</p>
-                  <div className="flex items-center text-white/40 group-hover:text-white transition-colors">
+                  <div className="flex items-center text-white/40 group-hover:text-[#1de1f1] transition-colors">
                     <span className="text-sm">{lang === "en" ? "Open" : "打开"}</span>
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition" />
                   </div>
@@ -262,7 +262,7 @@ export function DashboardHome() {
                     <div className="text-xs text-white/40 font-mono">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</div>
                     <div className="text-xs text-white/60 mt-0.5">{agent.fee}</div>
                   </div>
-                  <span className="w-1.5 h-1.5 bg-white inline-block animate-pulse ml-2" />
+                  <span className="w-1.5 h-1.5 inline-block animate-pulse ml-2" style={{ background: '#1de1f1' }} />
                 </div>
               );
             })}

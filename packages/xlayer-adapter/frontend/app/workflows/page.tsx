@@ -245,7 +245,7 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
           <button
             onClick={handleSubmit}
             disabled={submitting || !goal.trim() || selectedAgents.length === 0}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-black font-medium hover:bg-white/90 transition disabled:opacity-40 text-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1de1f1] text-black font-medium hover:bg-[#1de1f1]/80 transition disabled:opacity-40 text-sm"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> {lang === "en" ? "Running..." : "运行中..."}</>
@@ -717,7 +717,7 @@ export default function WorkflowsPage() {
                 <button
                   onClick={() => handleCreateTask(workflow.id)}
                   disabled={isCreating}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-black font-medium hover:bg-white/90 transition disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1de1f1] text-black font-medium hover:bg-[#1de1f1]/80 transition disabled:opacity-50"
                 >
                   {isCreating ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> {lang === "en" ? "Creating..." : "创建中..."}</>
@@ -779,7 +779,7 @@ export default function WorkflowsPage() {
                   <div className="mt-3 h-1 bg-white/10 overflow-hidden">
                     <div 
                       className={`h-full transition-all ${
-                        task.status === "completed" ? "bg-green-400" :
+                        task.status === "completed" ? "bg-[#1de1f1]" :
                         task.status === "failed" ? "bg-red-400" :
                         task.status === "pending_confirmation" ? "bg-yellow-400" :
                         "bg-white"

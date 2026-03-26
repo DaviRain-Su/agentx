@@ -460,7 +460,7 @@ export default function AgentPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-medium text-white text-lg">{agent.name}</h3>
-                  <span className="text-xs text-green-400">Official</span>
+                  <span className="text-xs text-[#1de1f1]">Official</span>
                 </div>
                 <span className="px-2 py-1 bg-white/10 text-xs text-white/60">FREE</span>
               </div>
@@ -474,7 +474,7 @@ export default function AgentPage() {
               </div>
               <button
                 onClick={() => startChat(agent)}
-                className="w-full py-2 bg-white text-black text-sm font-medium hover:bg-white/90 transition"
+                className="w-full py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 transition"
               >
                 Start Chat
               </button>
@@ -569,7 +569,7 @@ export default function AgentPage() {
                   setSelectedTeam(team);
                   alert(`Team ${team.name} hired! Starting collaborative session...`);
                 }}
-                className="px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 transition"
+                className="px-4 py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 transition"
               >
                 {selectedTeam?.id === team.id ? "Hired" : "Hire Team"}
               </button>
@@ -651,7 +651,7 @@ export default function AgentPage() {
             <button
               onClick={runCodegen}
               disabled={isGenerating || !codePrompt.trim()}
-              className="px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 disabled:opacity-40 transition inline-flex items-center gap-2"
+              className="px-4 py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 disabled:opacity-40 transition inline-flex items-center gap-2"
             >
               {isGenerating ? (
                 <>
@@ -712,7 +712,7 @@ export default function AgentPage() {
     const statusColor = {
       disconnected: "text-white/30",
       connecting: "text-yellow-400",
-      connected: "text-green-400",
+      connected: "text-[#1de1f1]",
       error: "text-red-400",
     }[connStatus];
 
@@ -730,7 +730,7 @@ export default function AgentPage() {
             <div>
               <h1 className="text-2xl font-light text-white">{selectedAgent.name}</h1>
               <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${connStatus === "connected" ? "bg-green-400 animate-pulse" : "bg-yellow-400"}`} />
+                <div className={`w-2 h-2 rounded-full ${connStatus === "connected" ? "bg-[#1de1f1] animate-pulse" : "bg-yellow-400"}`} />
                 <span className={statusColor}>
                   {connStatus === "connected" ? "Online" : connStatus === "error" ? "Error" : "Connecting..."}
                 </span>
@@ -783,8 +783,8 @@ export default function AgentPage() {
                   </div>
                 )}
                 {msg.role === "assistant" && (
-                  <div className="pl-4 border-l-2 border-green-400/50">
-                    <span className="text-green-400 text-xs block mb-1">
+                  <div className="pl-4 border-l-2 border-[#1de1f1]/50">
+                    <span className="text-[#1de1f1] text-xs block mb-1">
                       {msg.agentName || 'agent'}
                     </span>
                     <div className="text-white/80 whitespace-pre-wrap leading-relaxed">
@@ -796,8 +796,8 @@ export default function AgentPage() {
             ))}
 
             {isThinking && (
-              <div className="pl-4 border-l-2 border-green-400/50">
-                <span className="text-green-400 text-xs block mb-1">{selectedAgent.name}</span>
+              <div className="pl-4 border-l-2 border-[#1de1f1]/50">
+                <span className="text-[#1de1f1] text-xs block mb-1">{selectedAgent.name}</span>
                 <div className="flex items-center gap-1 text-white/40">
                   <span className="animate-pulse">▋</span>
                   <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>▋</span>

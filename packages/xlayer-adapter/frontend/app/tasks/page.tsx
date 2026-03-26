@@ -369,7 +369,7 @@ export default function TasksPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {job.status === "running" && <Loader2 className="w-4 h-4 text-white/60 animate-spin" />}
-                      {job.status === "completed" && <CheckCircle className="w-4 h-4 text-green-400" />}
+                      {job.status === "completed" && <CheckCircle className="w-4 h-4 text-[#1de1f1]" />}
                       {job.status === "failed" && <XCircle className="w-4 h-4 text-red-400" />}
                       {job.status === "unknown" && <Clock className="w-4 h-4 text-white/40" />}
                       <span className="font-medium text-white">{job.symbol} A2A Flow</span>
@@ -380,7 +380,7 @@ export default function TasksPage() {
                       )}
                     </div>
                     <span className={`text-xs ${
-                      job.status === "completed" ? "text-green-400" :
+                      job.status === "completed" ? "text-[#1de1f1]" :
                       job.status === "failed" ? "text-red-400" :
                       job.status === "running" ? "text-white/60" : "text-white/40"
                     }`}>
@@ -394,7 +394,7 @@ export default function TasksPage() {
                     <p className="text-sm text-white/60">
                       {job.symbol} ${job.currentPrice.toLocaleString()} · {job.priceSource}
                       {job.action && <span className={`ml-2 font-medium ${
-                        job.action === "BUY" ? "text-green-400" :
+                        job.action === "BUY" ? "text-[#1de1f1]" :
                         job.action === "SELL" ? "text-red-400" : "text-white/60"
                       }`}>{job.action}</span>}
                     </p>
@@ -423,7 +423,7 @@ export default function TasksPage() {
                   {selectedA2aJob.payments.map((p, i) => (
                     <div key={i} className="flex items-start gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-400 mt-1.5" />
+                        <div className="w-2 h-2 rounded-full bg-[#1de1f1] mt-1.5" />
                         {i < selectedA2aJob.payments!.length - 1 && (
                           <div className="w-px flex-1 bg-white/10 mt-1 mb-0" style={{ minHeight: "24px" }} />
                         )}
@@ -458,7 +458,7 @@ export default function TasksPage() {
                 {selectedA2aJob.refunded && parseFloat(selectedA2aJob.refunded) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">{lang === "en" ? "Refunded" : "已退款"}</span>
-                    <span className="text-green-400">{selectedA2aJob.refunded} USDC</span>
+                    <span className="text-[#1de1f1]">{selectedA2aJob.refunded} USDC</span>
                   </div>
                 )}
               </div>
@@ -505,7 +505,7 @@ export default function TasksPage() {
                   <div className="mt-2 h-1 bg-white/10 overflow-hidden">
                     <div 
                       className={`h-full transition-all ${
-                        task.status === "completed" ? "bg-green-400" :
+                        task.status === "completed" ? "bg-[#1de1f1]" :
                         task.status === "failed" ? "bg-red-400" :
                         task.status === "pending_confirmation" ? "bg-yellow-400" :
                         "bg-white"
@@ -545,7 +545,7 @@ export default function TasksPage() {
                   <div className="h-2 bg-white/10 overflow-hidden">
                     <div 
                       className={`h-full transition-all ${
-                        selectedTask.status === "completed" ? "bg-green-400" :
+                        selectedTask.status === "completed" ? "bg-[#1de1f1]" :
                         selectedTask.status === "failed" ? "bg-red-400" :
                         selectedTask.status === "pending_confirmation" ? "bg-yellow-400" :
                         "bg-white"
@@ -561,12 +561,12 @@ export default function TasksPage() {
                   {selectedTask.agentDIDs.map((did, index) => (
                     <div key={index} className="flex items-center gap-3 p-3 border border-white/10 bg-white/5">
                       <div className={`w-2 h-2 rounded-full ${
-                        index < selectedTask.currentStepIndex ? "bg-green-400" :
+                        index < selectedTask.currentStepIndex ? "bg-[#1de1f1]" :
                         index === selectedTask.currentStepIndex ? "bg-yellow-400 animate-pulse" :
                         "bg-white/20"
                       }`} />
                       <span className="text-sm text-white/60 font-mono truncate">{did}</span>
-                      {index < selectedTask.currentStepIndex && <CheckCircle className="w-4 h-4 text-green-400 ml-auto" />}
+                      {index < selectedTask.currentStepIndex && <CheckCircle className="w-4 h-4 text-[#1de1f1] ml-auto" />}
                       {index === selectedTask.currentStepIndex && selectedTask.status === "pending_confirmation" && (
                         <AlertCircle className="w-4 h-4 text-yellow-400 ml-auto" />
                       )}

@@ -82,7 +82,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillStyle = 'rgba(29, 225, 241, 0.4)';
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
@@ -96,7 +96,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < 150) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - dist / 150)})`;
+            ctx.strokeStyle = `rgba(29, 225, 241, ${0.08 * (1 - dist / 150)})`;
             ctx.lineWidth = 0.5;
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
@@ -130,12 +130,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Logo */}
         <div className="h-20 flex items-center px-6 border-b border-white/10">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-white/30 flex items-center justify-center shrink-0">
-              <Terminal className="w-5 h-5" />
+            <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ border: '1px solid #1de1f1' }}>
+              <Terminal className="w-5 h-5" style={{ color: '#1de1f1' }} />
             </div>
             {isSidebarOpen && (
-              <span className="font-bold tracking-wider text-white">
-                NEURAL PRISM
+              <span className="font-bold tracking-wider" style={{ color: '#1de1f1' }}>
+                AGENTX
               </span>
             )}
           </Link>
@@ -153,9 +153,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 href={item.href}
                 className={`flex items-center gap-4 px-4 py-3 transition-all ${
                   isActive
-                    ? "bg-white/10 border-l-2 border-white text-white"
+                    ? "bg-[#1de1f1]/10 border-l-2 text-[#1de1f1]"
                     : "text-white/60 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
                 }`}
+                style={isActive ? { borderColor: '#1de1f1' } : undefined}
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && (
@@ -232,10 +233,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center gap-4">
             <div className="text-sm text-white/60">
               <span className="text-white/40">Wallet:</span>{" "}
-              {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected"}
+              {address ? (
+                <span style={{ color: '#1de1f1' }}>{address.slice(0, 6)}...{address.slice(-4)}</span>
+              ) : "Not connected"}
             </div>
-            <div className="w-10 h-10 border border-white/30 flex items-center justify-center">
-              <span className="text-xs font-bold">{address ? address.slice(0, 2) : "--"}</span>
+            <div className="w-10 h-10 flex items-center justify-center" style={{ border: '1px solid #1de1f1' }}>
+              <span className="text-xs font-bold" style={{ color: '#1de1f1' }}>{address ? address.slice(0, 2) : "--"}</span>
             </div>
           </div>
         </header>

@@ -128,6 +128,7 @@ export default {
     // POST /api/nodes/connect       — register node endpoint (Bearer auth)
     // POST /api/nodes/heartbeat     — refresh node alive TTL (Bearer auth)
     // GET  /api/nodes/active        — list online nodes (public)
+    // POST /api/hire                — X402 agent hiring (402 → pay → 200)
 
     if (url.pathname === "/api/nodes/generate-key" && request.method === "POST") {
       return handleNodeGenerateKey(request, env);
@@ -143,6 +144,10 @@ export default {
 
     if (url.pathname === "/api/nodes/active" && request.method === "GET") {
       return handleNodeActive(env);
+    }
+
+    if (url.pathname === "/api/hire" && request.method === "POST") {
+      return handleHireAgent(request, env);
     }
 
     // ── Agent Addresses ───────────────────────────────────────────────────────
