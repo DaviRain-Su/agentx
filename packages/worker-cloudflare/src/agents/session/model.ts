@@ -7,17 +7,21 @@ export function buildGatewayModel(env: Env, preferred?: { provider: string; id: 
     || env.AI_GATEWAY_MODEL?.trim()
     || DEFAULT_GATEWAY_MODEL;
   const id = rawId === "auto" ? DEFAULT_GATEWAY_MODEL : rawId;
+
+  // Use Workers AI endpoint directly (no gateway config needed)
+  const baseUrl = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CF_ACCOUNT_ID)}/ai/v1`;
+
   return {
     provider: "ai-gateway",
     id,
-    name: `AI Gateway (${id})`,
+    name: `Workers AI (${id})`,
     api: "openai-completions",
     reasoning: true,
     input: ["text", "image"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 200000,
     maxTokens: 64000,
-    baseUrl: `https://gateway.ai.cloudflare.com/v1/${encodeURIComponent(env.CF_ACCOUNT_ID)}/${encodeURIComponent(env.CF_GATEWAY_NAME)}/compat`,
+    baseUrl,
     compat: {
       supportsDeveloperRole: false,
       supportsReasoningEffort: false,

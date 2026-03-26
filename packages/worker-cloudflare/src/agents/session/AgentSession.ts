@@ -109,6 +109,27 @@ export class AgentSession {
   }
 
   private async fallbackGatewayReply(userMessage: string): Promise<string | null> {
+    // Try Workers AI binding first (free, no gateway config needed)
+    if (this.env.AI) {
+      try {
+        const result = await (this.env.AI as any).run(
+          "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+          {
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: userMessage },
+            ],
+            max_tokens: 1200,
+          }
+        );
+        const text = result?.response || result?.result?.response || "";
+        if (text.trim()) return text;
+      } catch (e) {
+        console.error("[AgentSession] Workers AI fallback error:", e);
+      }
+    }
+
+    // Fallback to AI Gateway
     try {
       const modelId = this.env.AI_GATEWAY_MODEL?.trim() || DEFAULT_GATEWAY_MODEL;
       const endpoint = `https://gateway.ai.cloudflare.com/v1/${encodeURIComponent(this.env.CF_ACCOUNT_ID)}/${encodeURIComponent(this.env.CF_GATEWAY_NAME)}/compat/chat/completions`;
@@ -148,6 +169,18 @@ export class AgentSession {
     const store = new DOFileStore(this.sql);
     const persistedState = this.loadPersistedPiState();
     const history = this.loadHistory().slice(-20);
+
+    // ── Direct tool dispatch (keyword-based) ──────────────────────────────
+    // Ensures A2A payments and swarm tools execute reliably regardless of LLM tool-calling support
+    const tools = buildAgentTools(store, this.env);
+    const directResult = await this.tryDirectToolDispatch(userMessage, tools);
+    if (directResult) {
+      this.saveMsg("user", userMessage);
+      this.saveMsg("assistant", directResult);
+      this.persistHistoryToPiState(persistedState);
+      return directResult;
+    }
+
     const directPriceToken = extractRealtimePriceToken(userMessage);
     if (directPriceToken) {
       this.saveMsg("user", userMessage);
@@ -218,6 +251,58 @@ export class AgentSession {
     this.saveMsg("assistant", response);
     this.persistPiState(agent);
     return response;
+  }
+
+  /**
+   * Keyword-based direct tool dispatch.
+   * Ensures A2A payment tools fire reliably even when the LLM doesn't support tool calling.
+   */
+  private async tryDirectToolDispatch(msg: string, tools: any[]): Promise<string | null> {
+    const lower = msg.toLowerCase();
+    const findTool = (name: string) => tools.find((t: any) => t.name === name);
+
+    // "analyze X" / "swarm analysis" / "should I buy X" → run_swarm_analysis
+    const swarmMatch = lower.match(/(?:analy[sz]e|swarm|should i (?:buy|sell)|full analysis)\s+(\w+)/);
+    if (swarmMatch || lower.includes("swarm analysis") || lower.includes("run_swarm")) {
+      const token = swarmMatch?.[1]?.toUpperCase() || "ETH";
+      const tool = findTool("run_swarm_analysis");
+      if (tool) {
+        const result = await tool.execute("direct", { token, condition: `${token} > 0` });
+        return result.content[0]?.text || "Swarm analysis completed.";
+      }
+    }
+
+    // "hire price agent" / "hire_price_agent" / "paid price X"
+    if (lower.includes("hire price") || lower.includes("hire_price") || lower.includes("paid price")) {
+      const tokenMatch = lower.match(/(?:for|of|price)\s+(\w+)/);
+      const token = tokenMatch?.[1]?.toUpperCase() || "ETH";
+      const tool = findTool("hire_price_agent");
+      if (tool) {
+        const result = await tool.execute("direct", { token });
+        return result.content[0]?.text || "Price agent hired.";
+      }
+    }
+
+    // "hire trade agent" / "hire_trade_agent" / "trade recommendation"
+    if (lower.includes("hire trade") || lower.includes("hire_trade") || lower.includes("trade recommendation")) {
+      const token = "ETH";
+      const tool = findTool("hire_trade_agent");
+      if (tool) {
+        const result = await tool.execute("direct", { token, price: 0, condition: `${token} > 0` });
+        return result.content[0]?.text || "Trade agent hired.";
+      }
+    }
+
+    // "list agents" / "show agents" / "agent network"
+    if (lower.includes("list agent") || lower.includes("show agent") || lower.includes("agent network") || lower.includes("agent swarm")) {
+      const tool = findTool("list_agents");
+      if (tool) {
+        const result = await tool.execute("direct", {});
+        return result.content[0]?.text || "No agents found.";
+      }
+    }
+
+    return null; // no match — fall through to LLM
   }
 
   private loadPersistedPiState(): PersistedPiState | undefined {
