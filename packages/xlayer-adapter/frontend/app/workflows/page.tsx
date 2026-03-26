@@ -491,18 +491,38 @@ export default function WorkflowsPage() {
         await approveTx.wait();
       }
 
-      // 4. Trigger real A2A workflow on worker (orchestrator will transferFrom)
-      const data = await workerApi.startA2A({
+      // 4. Execute real A2A workflow — orchestrator does transferFrom + pays agents
+      const result = await workerApi.executeA2A({
         symbol,
-        budget: parseFloat(effectiveBudget),
+        budget: effectiveBudget,
         callerAddress: userAddress,
         type: a2aType,
         threshold,
       }, workerBase);
 
-      if (data.jobId) {
-        saveA2AJob({ jobId: data.jobId, symbol, createdAt: Date.now() });
-        setCreatedTaskId(data.jobId);
+      if (result.status === "completed" && result.payments) {
+        // Save as a completed A2A job for the Tasks page
+        const jobId = `a2a_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
+        const job = {
+          jobId,
+          source: "on-chain" as const,
+          symbol: result.symbol || symbol,
+          createdAt: Date.now(),
+          status: "completed" as const,
+          currentPrice: result.currentPrice,
+          priceSource: result.priceSource,
+          action: result.action,
+          totalSpent: result.totalSpent,
+          refunded: result.refunded,
+          payments: result.payments,
+          workflowName: workflow.name,
+          token: "axUSDC",
+        };
+        const existing = JSON.parse(localStorage.getItem("a2a_simulated_jobs") || "[]");
+        localStorage.setItem("a2a_simulated_jobs", JSON.stringify([job, ...existing].slice(0, 20)));
+        setCreatedTaskId(jobId);
+      } else {
+        throw new Error(result.error || "A2A execution failed");
       }
 
       router.push("/tasks");

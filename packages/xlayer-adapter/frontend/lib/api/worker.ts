@@ -126,6 +126,41 @@ export const workerApi = {
     );
   },
 
+  /** Execute A2A with real axUSDC payments (user must have approved orchestrator first) */
+  executeA2A(
+    payload: { symbol: string; budget: string; callerAddress: string; type?: string; threshold?: number },
+    workerBase?: string
+  ) {
+    return requestJson<{
+      status: string;
+      symbol?: string;
+      currentPrice?: number;
+      priceSource?: string;
+      action?: string;
+      conditionMet?: boolean;
+      totalSpent?: string;
+      refunded?: string;
+      payments?: Array<{
+        step: string;
+        from: string;
+        to: string;
+        amount: string;
+        txHash: string;
+        blockNumber: number;
+        explorerUrl: string;
+      }>;
+      error?: string;
+    }>(
+      "/api/a2a/execute",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      workerBase
+    );
+  },
+
   simulateA2A(
     payload: { symbol: string; budget: number; type?: string; threshold?: number },
     workerBase?: string
