@@ -216,7 +216,7 @@ export function LandingPage() {
             </div>
             <h1 className="text-5xl lg:text-7xl font-light leading-tight mb-6">
               <span className="block">{lang === 'en' ? 'Decentralized' : '去中心化'}</span>
-              <span className="block text-white/40">{lang === 'en' ? 'AI Agent' : 'AI 智能体'}</span>
+              <span className="block" style={{ color: '#1de1f1' }}>{lang === 'en' ? 'AI Agent' : 'AI 智能体'}</span>
               <span className="block">{lang === 'en' ? 'Economic Network' : '经济网络'}</span>
             </h1>
             <p className="text-lg text-white/60 mb-8 max-w-lg leading-relaxed">
