@@ -1,6 +1,6 @@
 {
   "name": "@agentxs/agent-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AgentX SDK — build AI agents for the decentralized AgentX network with on-chain A2A payments",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -70,6 +70,10 @@ export { TradeStrategyAgent }     from "./agents/TradeStrategyAgent.js";
 export { AgentRegistryService }   from "./registry/AgentRegistryService.js";
 export type { RegisteredAgent }   from "./registry/AgentRegistryService.js";
 
+// ── AgentConnector (for external developers joining the network) ──────────────
+export { AgentConnector } from "./connector/AgentConnector.js";
+export type { AgentConnectorConfig, AgentTask } from "./connector/AgentConnector.js";
+
 // ── Chain constants ───────────────────────────────────────────────────────────
 export { XLAYER_TESTNET } from "./constants.js";
 
