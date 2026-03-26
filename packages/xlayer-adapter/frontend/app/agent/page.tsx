@@ -4,39 +4,20 @@ import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useWeb3 } from "@/components/Web3Provider";
 import { useAppSettingsStore } from "@/store/settings";
-import { Terminal, Send, Loader2, Lock, Trash2, ShoppingCart, Users, Zap, Star, FileCode2, Sparkles } from "lucide-react";
-import { ethers } from "ethers";
-
-// Agent Registry ABI (simplified)
-const AGENT_MARKET_ABI = [
-  "function getAgent(bytes32 agentId) view returns (tuple(bytes32 id, string name, string description, address creator, uint256 price, bool isActive, uint8 agentType))",
-  "function getFreeAgents() view returns (bytes32[])",
-  "function getPaidAgents() view returns (bytes32[])",
-  "function hasAccess(address user, bytes32 agentId) view returns (bool)",
-  "function purchaseAccess(bytes32 agentId) payable",
-  "event AgentPurchased(bytes32 indexed agentId, address indexed user, uint256 price)",
-];
-
-const MARKET_CONTRACT = process.env.NEXT_PUBLIC_AGENT_MARKET || "0x0000000000000000000000000000000000000000";
+import { Terminal, Send, Loader2, Lock, Trash2, Zap, FileCode2, Sparkles } from "lucide-react";
+import { workerApi } from "@/lib/api/worker";
 
 interface Agent {
   id: string;
   name: string;
   description: string;
   creator: string;
-  price: string; // USDC
+  price: string; // OKB per call
   isActive: boolean;
-  type: 'free' | 'paid' | 'team';
-  rating?: number;
-  usage?: number;
-}
-
-interface Team {
-  id: string;
-  name: string;
-  members: string[];
-  hourlyRate: string;
-  description: string;
+  type: 'free' | 'paid';
+  address?: string;
+  endpoint?: string;
+  builtin?: boolean;
 }
 
 interface Message {
@@ -73,82 +54,24 @@ interface CodegenStatusResponse {
   error?: string;
 }
 
-type ViewMode = 'marketplace' | 'chat' | 'team';
+type ViewMode = 'marketplace' | 'chat';
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
-// Mock data - would come from contract
-const MOCK_AGENTS: Agent[] = [
-  {
-    id: "0x1111",
-    name: "AgentX Assistant",
-    description: "Official platform assistant. Answers questions about AgentX, helps with workflows, and provides documentation.",
-    creator: "0xOfficial",
-    price: "0",
-    isActive: true,
-    type: 'free',
-    rating: 4.8,
-    usage: 1250,
-  },
-  {
-    id: "0x2222",
-    name: "Price Oracle",
-    description: "Real-time crypto price monitoring with technical analysis. Supports 1000+ trading pairs.",
-    creator: "0xProDev1",
-    price: "0.001",
-    isActive: true,
-    type: 'paid',
-    rating: 4.5,
-    usage: 342,
-  },
-  {
-    id: "0x3333",
-    name: "Trading Strategist",
-    description: "AI-powered trading strategy analysis. Backtesting, risk assessment, and execution recommendations.",
-    creator: "0xProDev2",
-    price: "0.01",
-    isActive: true,
-    type: 'paid',
-    rating: 4.9,
-    usage: 89,
-  },
-  {
-    id: "0x4444",
-    name: "Code Generator",
-    description: "Generate smart contracts, scripts, and dApps. Supports Solidity, TypeScript, Python.",
-    creator: "0xCodeMaster",
-    price: "0.005",
-    isActive: true,
-    type: 'paid',
-    rating: 4.7,
-    usage: 567,
-  },
-];
-
-const MOCK_TEAMS: Team[] = [
-  {
-    id: "team1",
-    name: "Alpha Trading Squad",
-    members: ["Price Oracle", "Trading Strategist", "Risk Manager"],
-    hourlyRate: "0.05",
-    description: "Complete trading team with price monitoring, strategy analysis, and risk management.",
-  },
-  {
-    id: "team2",
-    name: "Dev Automation Crew",
-    members: ["Code Generator", "Security Auditor", "Test Writer"],
-    hourlyRate: "0.03",
-    description: "Development team for smart contract creation, auditing, and testing.",
-  },
-];
+const AGENT_DESCRIPTIONS: Record<string, string> = {
+  "orchestrator": "Official platform coordinator. Manages multi-agent workflows, routes requests, and handles payments.",
+  "price-oracle": "Real-time crypto price monitoring from Binance and CoinGecko. Supports 1000+ trading pairs.",
+  "trade-strategy": "AI-powered trading strategy analysis. Risk assessment and execution recommendations.",
+};
 
 export default function AgentPage() {
-  const { address, signer, usdc } = useWeb3();
+  const { address } = useWeb3();
   const { workerUrl: configuredWorkerUrl, agentModel } = useAppSettingsStore();
   const workerUrl = configuredWorkerUrl.replace(/\/+$/, "");
 
   const [viewMode, setViewMode] = useState<ViewMode>('marketplace');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
   
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -157,7 +80,6 @@ export default function AgentPage() {
   const [connStatus, setConnStatus] = useState<ConnectionStatus>("disconnected");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
-  const [hasPurchased, setHasPurchased] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Codegen state
@@ -171,6 +93,26 @@ export default function AgentPage() {
   const [codegenResult, setCodegenResult] = useState<CodegenResult | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Load real agents from Worker
+  useEffect(() => {
+    workerApi.getActiveNodes(workerUrl).then((nodes) => {
+      const mapped: Agent[] = nodes.map((node) => ({
+        id: node.nodeId,
+        name: node.name,
+        description: AGENT_DESCRIPTIONS[node.name] || node.capabilities?.join(", ") || "Agent",
+        creator: node.builtin ? "Built-in" : (node.address?.slice(0, 6) + "..." || "Unknown"),
+        price: node.fee || "0",
+        isActive: true,
+        type: (node.fee && node.fee !== "0") ? "paid" : "free",
+        address: node.address,
+        endpoint: node.endpoint,
+        builtin: node.builtin,
+      }));
+      setAgents(mapped);
+      setAgentsLoading(false);
+    }).catch(() => setAgentsLoading(false));
+  }, [workerUrl]);
 
   // Auto-scroll
   useEffect(() => {
@@ -203,33 +145,6 @@ export default function AgentPage() {
     return data as T;
   };
 
-  // Purchase agent access
-  const purchaseAccess = async (agent: Agent): Promise<boolean> => {
-    if (!signer || !usdc || !address) return false;
-    
-    setIsPurchasing(true);
-    try {
-      // Approve USDC
-      const price = ethers.parseUnits(agent.price, 6);
-      const approveTx = await usdc.approve(MARKET_CONTRACT, price);
-      await approveTx.wait();
-      
-      // Purchase
-      const market = new ethers.Contract(MARKET_CONTRACT, AGENT_MARKET_ABI, signer);
-      const tx = await market.purchaseAccess(agent.id);
-      await tx.wait();
-      
-      setHasPurchased(true);
-      return true;
-    } catch (err) {
-      console.error("Purchase failed:", err);
-      alert("Purchase failed. Please try again.");
-      return false;
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
   // Start chat with agent
   const startChat = async (agent: Agent) => {
     setSelectedAgent(agent);
@@ -237,16 +152,12 @@ export default function AgentPage() {
     setChatError(null);
 
     try {
-      const templateMap: Record<string, string> = {
-        "0x1111": "orchestrator",
-        "0x2222": "price-oracle",
-        "0x3333": "trade-strategy",
-        "0x4444": "codegen",
-      };
+      // Use agent name as template (built-in agents: orchestrator, price-oracle, trade-strategy)
+      const template = agent.name.match(/^[a-z-]+$/) ? agent.name : "orchestrator";
       const deploy = await callWorker<{ sessionId: string }>("/api/deploy", {
         method: "POST",
         body: JSON.stringify({
-          template: templateMap[agent.id] || "orchestrator",
+          template,
           config: { name: agent.name, model: agentModel },
         }),
       });
@@ -363,19 +274,6 @@ export default function AgentPage() {
     setMessages([]);
   };
 
-  const handlePaidChat = async (agent: Agent) => {
-    const missingOnchainPurchaseDeps = !signer || !usdc || MARKET_CONTRACT === "0x0000000000000000000000000000000000000000";
-    if (missingOnchainPurchaseDeps) {
-      await startChat(agent);
-      return;
-    }
-
-    if (!hasPurchased) {
-      const purchased = await purchaseAccess(agent);
-      if (!purchased) return;
-    }
-    await startChat(agent);
-  };
 
   const runCodegen = async () => {
     if (!codePrompt.trim() || isGenerating) return;
@@ -425,160 +323,104 @@ export default function AgentPage() {
   const renderMarketplace = () => (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">
-            Agent Swarm
-          </span>
-          <h1 className="text-4xl font-light text-white">Choose Your Agent</h1>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('marketplace')}
-            className={`px-4 py-2 text-sm transition ${viewMode === 'marketplace' ? 'bg-white text-black' : 'border border-white/20 text-white hover:border-white/40'}`}
-          >
-            <Zap className="w-4 h-4 inline mr-2" />
-            Agents
-          </button>
-          <button
-            onClick={() => setViewMode('team')}
-            className={`px-4 py-2 text-sm transition ${viewMode === 'team' ? 'bg-white text-black' : 'border border-white/20 text-white hover:border-white/40'}`}
-          >
-            <Users className="w-4 h-4 inline mr-2" />
-            Teams
-          </button>
-
-        </div>
-      </div>
-
-      {/* Free Tier */}
       <div>
-        <h2 className="text-sm text-white/40 uppercase tracking-[0.2em] mb-4">Free Tier</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {MOCK_AGENTS.filter(a => a.type === 'free').map(agent => (
-            <div key={agent.id} className="border border-white/10 bg-white/5 p-5 hover:border-white/30 transition">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-medium text-white text-lg">{agent.name}</h3>
-                  <span className="text-xs text-[#1de1f1]">Official</span>
-                </div>
-                <span className="px-2 py-1 bg-white/10 text-xs text-white/60">FREE</span>
-              </div>
-              <p className="text-sm text-white/50 mb-4 line-clamp-2">{agent.description}</p>
-              <div className="flex items-center justify-between text-xs text-white/40 mb-4">
-                <span className="flex items-center gap-1">
-                  <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                  {agent.rating}
-                </span>
-                <span>{agent.usage} uses</span>
-              </div>
-              <button
-                onClick={() => startChat(agent)}
-                className="w-full py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 transition"
-              >
-                Start Chat
-              </button>
-            </div>
-          ))}
-        </div>
+        <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">
+          Agent Terminal
+        </span>
+        <h1 className="text-4xl font-light text-white">Choose Your Agent</h1>
       </div>
 
-      {/* Paid Tier */}
-      <div>
-        <h2 className="text-sm text-white/40 uppercase tracking-[0.2em] mb-4">Pro Agents</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {MOCK_AGENTS.filter(a => a.type === 'paid').map(agent => (
-            <div key={agent.id} className="border border-white/10 bg-white/5 p-5 hover:border-white/30 transition">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-medium text-white text-lg">{agent.name}</h3>
-                  <span className="text-xs text-white/40">by {agent.creator.slice(0, 6)}...</span>
-                </div>
-                <span className="px-2 py-1 bg-white/10 text-xs text-white">{agent.price} USDC/call</span>
-              </div>
-              <p className="text-sm text-white/50 mb-4 line-clamp-2">{agent.description}</p>
-              <div className="flex items-center justify-between text-xs text-white/40 mb-4">
-                <span className="flex items-center gap-1">
-                  <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                  {agent.rating}
-                </span>
-                <span>{agent.usage} uses</span>
-              </div>
-              <button
-                onClick={() => handlePaidChat(agent)}
-                disabled={isPurchasing}
-                className="w-full py-2 bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition flex items-center justify-center gap-2"
-              >
-                {isPurchasing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Purchasing...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4" />
-                    Purchase & Chat
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
+      {agentsLoading ? (
+        <div className="flex items-center gap-2 text-white/40 text-sm py-8">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading agents...
         </div>
-      </div>
-    </div>
-  );
-
-  const renderTeamView = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">
-            Team Collaboration
-          </span>
-          <h1 className="text-4xl font-light text-white">Hire a Team</h1>
-        </div>
-        <button
-          onClick={() => setViewMode('marketplace')}
-          className="px-4 py-2 border border-white/20 text-white text-sm hover:border-white/40 transition"
-        >
-          Back to Agents
-        </button>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {MOCK_TEAMS.map(team => (
-          <div key={team.id} className="border border-white/10 bg-white/5 p-5 hover:border-white/30 transition">
-            <h3 className="font-medium text-white text-lg mb-2">{team.name}</h3>
-            <p className="text-sm text-white/50 mb-4">{team.description}</p>
-            
-            <div className="space-y-2 mb-4">
-              {team.members.map((member, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-white/60">
-                  <div className="w-6 h-6 border border-white/20 flex items-center justify-center text-xs">
-                    {member[0]}
+      ) : (
+        <>
+          {/* Free Tier */}
+          {agents.filter(a => a.type === 'free').length > 0 && (
+            <div>
+              <h2 className="text-sm text-white/40 uppercase tracking-[0.2em] mb-4">Free Tier</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {agents.filter(a => a.type === 'free').map(agent => (
+                  <div key={agent.id} className="border border-white/10 bg-white/5 p-5 hover:border-white/30 transition">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-medium text-white text-lg capitalize">{agent.name.replace(/-/g, " ")}</h3>
+                        <span className="text-xs text-[#1de1f1]">{agent.builtin ? "Built-in" : agent.creator}</span>
+                      </div>
+                      <span className="px-2 py-1 bg-white/10 text-xs text-white/60">FREE</span>
+                    </div>
+                    <p className="text-sm text-white/50 mb-4 line-clamp-2">{agent.description}</p>
+                    {agent.address && (
+                      <div className="text-xs text-white/30 font-mono mb-4">
+                        {agent.address.slice(0, 8)}...{agent.address.slice(-6)}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => startChat(agent)}
+                      className="w-full py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 transition"
+                    >
+                      Start Chat
+                    </button>
                   </div>
-                  {member}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+          )}
 
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
-              <span className="text-lg font-medium text-white">{team.hourlyRate} USDC/h</span>
-              <button
-                onClick={() => {
-                  setSelectedTeam(team);
-                  alert(`Team ${team.name} hired! Starting collaborative session...`);
-                }}
-                className="px-4 py-2 bg-[#1de1f1] text-black text-sm font-medium hover:bg-[#1de1f1]/80 transition"
-              >
-                {selectedTeam?.id === team.id ? "Hired" : "Hire Team"}
-              </button>
+          {/* Pro Agents */}
+          {agents.filter(a => a.type === 'paid').length > 0 && (
+            <div>
+              <h2 className="text-sm text-white/40 uppercase tracking-[0.2em] mb-4">Pro Agents</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {agents.filter(a => a.type === 'paid').map(agent => (
+                  <div key={agent.id} className="border border-white/10 bg-white/5 p-5 hover:border-white/30 transition">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-medium text-white text-lg capitalize">{agent.name.replace(/-/g, " ")}</h3>
+                        <span className="text-xs text-white/40">{agent.builtin ? "Built-in" : agent.creator}</span>
+                      </div>
+                      <span className="px-2 py-1 bg-white/10 text-xs text-white">{agent.price} OKB/call</span>
+                    </div>
+                    <p className="text-sm text-white/50 mb-4 line-clamp-2">{agent.description}</p>
+                    {agent.address && (
+                      <div className="text-xs text-white/30 font-mono mb-4">
+                        {agent.address.slice(0, 8)}...{agent.address.slice(-6)}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => startChat(agent)}
+                      disabled={isPurchasing}
+                      className="w-full py-2 bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition flex items-center justify-center gap-2"
+                    >
+                      {isPurchasing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4" />
+                          Chat ({agent.price} OKB/call)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+
+          {agents.length === 0 && (
+            <div className="py-8 text-center text-white/30 text-sm">
+              No agents available. Check Worker connection.
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
+
 
   const renderCodegenView = () => {
     const downloadUrl = codegenResult ? toWorkerUrl(codegenResult.downloadUrl) : null;
@@ -872,7 +714,6 @@ export default function AgentPage() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto">
         {viewMode === 'marketplace' && renderMarketplace()}
-        {viewMode === 'team' && renderTeamView()}
         {viewMode === 'chat' && renderChat()}
       </div>
     </DashboardLayout>

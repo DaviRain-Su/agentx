@@ -9,7 +9,9 @@ import {
   Users, Zap, Loader2, CheckCircle, ExternalLink, Send, Terminal,
   ArrowRight, RefreshCw
 } from "lucide-react";
-import { workerApi, type WorkerAgentEntry } from "@/lib/api/worker";
+import { workerApi } from "@/lib/api/worker";
+
+const ORCHESTRATOR_ADDRESS = "0xbE24E6aa9063a7d4885E84E2427Ec6aE31144Ee0";
 
 const EXPLORER = "https://www.oklink.com/x-layer-testnet/tx";
 
@@ -62,18 +64,18 @@ export default function SwarmPage() {
   const [chatSending, setChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load real agents from Worker
+  // Load real agents from Worker (always returns built-ins, no NODE_PRIVATE_KEY needed)
   useEffect(() => {
-    workerApi.getAgents(workerBase).then((data) => {
-      const list: SwarmAgent[] = Object.entries(data).map(([name, info]) => ({
-        name,
-        address: info.address,
-        fee: info.fee || "—",
-        capabilities: info.capabilities || [],
-        role: name === "orchestrator" ? "Coordinator — hires agents, manages payments"
-          : name === "price-oracle" ? "Real-time prices from Binance + CoinGecko"
-          : name === "trade-strategy" ? "Risk analysis + trade recommendations"
-          : info.capabilities?.join(", ") || "Agent",
+    workerApi.getActiveNodes(workerBase).then((nodes) => {
+      const list: SwarmAgent[] = nodes.map((node) => ({
+        name: node.name,
+        address: node.address || "",
+        fee: node.fee || "—",
+        capabilities: node.capabilities || [],
+        role: node.name === "orchestrator" ? "Coordinator — hires agents, manages payments"
+          : node.name === "price-oracle" ? "Real-time prices from Binance + CoinGecko"
+          : node.name === "trade-strategy" ? "Risk analysis + trade recommendations"
+          : node.capabilities?.join(", ") || "Agent",
       }));
       setAgents(list);
       setLoading(false);
@@ -113,10 +115,7 @@ export default function SwarmPage() {
         await mintTx.wait(1);
       }
 
-      // Get orchestrator address
-      const agentData = await workerApi.getAgents(workerBase);
-      const orchAddr = agentData?.orchestrator?.address;
-      if (!orchAddr) throw new Error("Cannot fetch orchestrator address");
+      const orchAddr = ORCHESTRATOR_ADDRESS;
 
       // Approve orchestrator (wallet signature!)
       const allowance = await token.allowance(address, orchAddr);
