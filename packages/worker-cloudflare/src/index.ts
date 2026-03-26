@@ -11,16 +11,14 @@
  */
 
 import { ethers } from "ethers";
-import { createDownloadHandler } from "pi-worker";
 import { CloudflareRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from "@agentx/shared-orchestrator";
 import { WorkflowOrchestrator, PriceOracleAgent, TradeStrategyAgent } from "@agentx/agent-sdk";
 import { CONTRACTS } from "./config/contracts";
 import { AgentSession } from "./agents/AgentSession";
 import { A2APaymentWorkflow, type A2AWorkflowParams, type A2AWorkflowResult } from "./workflows/A2APaymentWorkflow";
-import { CodegenWorkflow, type CodegenWorkflowParams, type CodegenWorkflowResult } from "./workflows/CodegenWorkflow";
 
 // Re-export Durable Objects and Workflows for Wrangler bindings
-export { AgentSession, A2APaymentWorkflow, CodegenWorkflow };
+export { AgentSession, A2APaymentWorkflow };
 
 export interface Env {
   // Node identity
@@ -52,9 +50,6 @@ export interface Env {
   AI: Ai;
   AGENT_SESSIONS: DurableObjectNamespace;
   A2A_WORKFLOW: Workflow<A2AWorkflowParams>;
-  CODEGEN_WORKFLOW: Workflow<CodegenWorkflowParams>;
-  CODEGEN_FILES: R2Bucket;
-  DOWNLOAD_SECRET: string;
   LOADER?: unknown;
   OUTBOUND?: Fetcher;
 
@@ -126,21 +121,6 @@ export default {
     // Legacy simulation endpoint (no callerAddress = demo mode, still sync)
     if (url.pathname === "/api/a2a/simulate" && request.method === "POST") {
       return handleA2ASimulate(request, env);
-    }
-
-    // ── CodeFlare Codegen Workflow Endpoints ─────────────────────────────────
-
-    if (url.pathname === "/api/codegen" && request.method === "POST") {
-      return handleStartCodegenWorkflow(request, env);
-    }
-
-    const codegenStatusMatch = url.pathname.match(/^\/api\/codegen\/([^/]+)$/);
-    if (codegenStatusMatch && request.method === "GET") {
-      return handleCodegenStatus(codegenStatusMatch[1], env);
-    }
-
-    if (url.pathname.startsWith("/api/codegen/download/") && request.method === "GET") {
-      return handleCodegenDownload(request, env);
     }
 
     // ── Node Registry (KV-backed indexer) ────────────────────────────────────
@@ -474,97 +454,6 @@ async function handleA2ASimulate(request: Request, env: Env): Promise<Response> 
       { step: "Orchestrator → User (refund)",    amount: `${(budget - 0.001 - (conditionMet ? 0.005 : 0)).toFixed(4)} OKB` },
     ].filter(Boolean),
   }, { headers: CORS });
-}
-
-// ─── CodeFlare Workflow Handlers ─────────────────────────────────────────────
-
-/** POST /api/codegen — launch durable code generation workflow */
-async function handleStartCodegenWorkflow(request: Request, env: Env): Promise<Response> {
-  if (!env.CODEGEN_WORKFLOW || !env.CODEGEN_FILES || !env.DOWNLOAD_SECRET) {
-    return Response.json({ error: "Codegen workflow bindings are not configured" }, { status: 503, headers: CORS });
-  }
-
-  let body: Partial<CodegenWorkflowParams> = {};
-  try { body = await request.json() as typeof body; }
-  catch { return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: CORS }); }
-
-  const prompt = body.prompt?.trim();
-  if (!prompt) {
-    return Response.json({ error: "prompt is required" }, { status: 400, headers: CORS });
-  }
-
-  const params: CodegenWorkflowParams = {
-    prompt,
-    language: body.language || "typescript",
-    target: body.target || "cloudflare-worker",
-  };
-  const jobId = `codegen_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
-
-  try {
-    await env.CODEGEN_WORKFLOW.create({
-      id: jobId,
-      params,
-      retention: {
-        successRetention: "1 day",
-        errorRetention: "1 day",
-      },
-    });
-  } catch (err) {
-    return Response.json({ error: `Failed to start codegen workflow: ${err}` }, { status: 500, headers: CORS });
-  }
-
-  return Response.json({
-    jobId,
-    status: "running",
-    pollUrl: `/api/codegen/${jobId}`,
-  }, { headers: CORS });
-}
-
-/** GET /api/codegen/:jobId — poll code generation workflow status */
-async function handleCodegenStatus(jobId: string, env: Env): Promise<Response> {
-  try {
-    const instance = await env.CODEGEN_WORKFLOW.get(jobId);
-    const info = await instance.status();
-
-    switch (info.status) {
-      case "queued":
-      case "running":
-      case "waiting":
-      case "waitingForPause":
-      case "paused":
-        return Response.json({ jobId, status: "running" }, { headers: CORS });
-
-      case "complete":
-        return Response.json({
-          jobId,
-          status: "completed",
-          result: info.output as CodegenWorkflowResult,
-        }, { headers: CORS });
-
-      case "errored":
-      case "terminated":
-        return Response.json({
-          jobId,
-          status: "failed",
-          error: (info as any).error?.message || `Workflow ${info.status}`,
-        }, { headers: CORS });
-
-      default:
-        return Response.json({ jobId, status: "unknown" }, { headers: CORS });
-    }
-  } catch {
-    return Response.json({ error: "Job not found" }, { status: 404, headers: CORS });
-  }
-}
-
-/** GET /api/codegen/download/:key?sig=... — serve signed artifact downloads */
-async function handleCodegenDownload(request: Request, env: Env): Promise<Response> {
-  if (!env.CODEGEN_FILES || !env.DOWNLOAD_SECRET) {
-    return Response.json({ error: "Codegen download bindings are not configured" }, { status: 503, headers: CORS });
-  }
-  const downloads = createDownloadHandler(env.CODEGEN_FILES, env.DOWNLOAD_SECRET, "/api/codegen/download/");
-  const served = await downloads.serve(request);
-  return served || Response.json({ error: "Invalid or expired download URL" }, { status: 404, headers: CORS });
 }
 
 // ─── Node Registry Handlers ───────────────────────────────────────────────────

@@ -73,7 +73,7 @@ interface CodegenStatusResponse {
   error?: string;
 }
 
-type ViewMode = 'marketplace' | 'chat' | 'team' | 'codegen';
+type ViewMode = 'marketplace' | 'chat' | 'team';
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 // Mock data - would come from contract
@@ -447,13 +447,7 @@ export default function AgentPage() {
             <Users className="w-4 h-4 inline mr-2" />
             Teams
           </button>
-          <button
-            onClick={() => setViewMode('codegen')}
-            className={`px-4 py-2 text-sm transition ${viewMode === 'codegen' ? 'bg-white text-black' : 'border border-white/20 text-white hover:border-white/40'}`}
-          >
-            <FileCode2 className="w-4 h-4 inline mr-2" />
-            Codegen
-          </button>
+
         </div>
       </div>
 
@@ -879,7 +873,6 @@ export default function AgentPage() {
       <div className="max-w-5xl mx-auto">
         {viewMode === 'marketplace' && renderMarketplace()}
         {viewMode === 'team' && renderTeamView()}
-        {viewMode === 'codegen' && renderCodegenView()}
         {viewMode === 'chat' && renderChat()}
       </div>
     </DashboardLayout>
