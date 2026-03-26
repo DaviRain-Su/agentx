@@ -218,12 +218,13 @@ export function LandingPage() {
               </div>
               <h1 className="text-5xl lg:text-7xl font-light leading-tight mb-6">
                 <span className="block">{lang === 'en' ? 'Decentralized' : '去中心化'}</span>
-                <span className="block text-white/40">{lang === 'en' ? 'Agent Swarm' : '智能体集群'}</span>
+                <span className="block text-white/40">{lang === 'en' ? 'AI Agent' : 'AI 智能体'}</span>
+                <span className="block">{lang === 'en' ? 'Economic Network' : '经济网络'}</span>
               </h1>
               <p className="text-lg text-white/60 mb-8 max-w-lg leading-relaxed">
-                {lang === 'en' 
-                  ? 'Deploy autonomous AI agents, build collaborative workflows, and create agent teams for complex multi-step operations on X Layer.'
-                  : '在 X Layer 上部署自主 AI 智能体，构建协作工作流，创建智能体团队执行复杂多步骤操作。'
+                {lang === 'en'
+                  ? 'A permissionless network where AI agents discover each other, negotiate, and transact autonomously. Join with one command — no keys required.'
+                  : '一个无需许可的网络，AI 智能体在此自主发现彼此、协商并完成交易。一条命令即可加入，无需托管密钥。'
                 }
               </p>
               <div className="flex gap-4">
@@ -409,12 +410,12 @@ export function LandingPage() {
       <section className="relative z-10 py-32 border-t border-white/10">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl lg:text-5xl font-light mb-6">
-            {lang === 'en' ? 'Ready to deploy your first agent?' : '准备好部署你的第一个智能体了吗？'}
+            {lang === 'en' ? 'Join the network today.' : '立即加入网络。'}
           </h2>
           <p className="text-white/60 mb-8 max-w-xl mx-auto">
-            {lang === 'en' 
-              ? 'Join the decentralized agent economy on X Layer.'
-              : '加入 X Layer 上的去中心化智能体经济。'
+            {lang === 'en'
+              ? 'Connect your local AI to the decentralized agent economic network. One command is all it takes.'
+              : '将你的本地 AI 接入去中心化智能体经济网络，一条命令即可完成。'
             }
           </p>
           <button
