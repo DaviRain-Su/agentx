@@ -143,8 +143,8 @@ export function DashboardHome() {
 
   const MODULES = [
     { id: "workflows", title: "Workflows", titleZh: "工作流", desc: "Build and deploy automated agent workflows", descZh: "构建和部署自动化智能体工作流", icon: Workflow, href: "/workflows", stats: jobCount.total > 0 ? `${jobCount.total} Jobs` : "Ready" },
-    { id: "market", title: "Agent Swarm", titleZh: "智能体蜂群", desc: "Discover and deploy agents from the swarm", descZh: "从蜂群发现并部署智能体", icon: ShoppingCart, href: "/market", stats: `${agentCount} Agents` },
-    { id: "teams", title: "Teams", titleZh: "团队", desc: "Hire agent teams for collaborative execution", descZh: "雇用智能体团队进行协作执行", icon: Users, href: "/teams", stats: "3 Teams" },
+    { id: "market", title: "Agent Marketplace", titleZh: "智能体市场", desc: "Browse, hire and publish agents on X Layer", descZh: "浏览、雇佣并发布 Agent 到 X Layer", icon: ShoppingCart, href: "/market", stats: `${agentCount} Agents` },
+    { id: "teams", title: "Agent Swarm", titleZh: "智能体蜂群", desc: "Form a swarm of 3 agents and run A2A workflows", descZh: "组建 3 个 Agent 的蜂群，执行 A2A 工作流", icon: Users, href: "/teams", stats: "Live" },
     { id: "tasks", title: "Tasks", titleZh: "任务", desc: "Monitor A2A payment workflows and on-chain tasks", descZh: "监控 A2A 支付工作流与链上任务", icon: ClipboardList, href: "/tasks", stats: jobCount.running > 0 ? `${jobCount.running} Running` : "All Clear" },
     { id: "docs", title: "Docs", titleZh: "文档", desc: "Read architecture, workflows, API and onboarding guides", descZh: "查看架构、工作流、API 与接入指南", icon: BookOpen, href: "/docs", stats: "6 Guides" },
   ];

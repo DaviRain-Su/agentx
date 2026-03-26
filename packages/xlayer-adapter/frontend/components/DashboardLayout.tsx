@@ -24,8 +24,8 @@ import {
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "workflows", label: "navWorkflows", icon: Workflow, href: "/workflows" },
-  { id: "market", label: "navMarket", icon: ShoppingCart, href: "/market" },
-  { id: "teams", label: "navTeams", icon: Users, href: "/teams" },
+  { id: "swarm", label: "Agent Swarm", icon: Users, href: "/teams" },
+  { id: "market", label: "Marketplace", icon: ShoppingCart, href: "/market" },
   { id: "tasks", label: "navTasks", icon: ClipboardList, href: "/tasks" },
   { id: "agent", label: "Agent Terminal", icon: Terminal, href: "/agent" },
   { id: "docs", label: "Docs", icon: BookOpen, href: "/docs" },
@@ -161,7 +161,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Icon className="w-5 h-5 shrink-0" />
                 {isSidebarOpen && (
                   <span className="font-medium text-sm">
-                    {item.label === "Home" || item.label === "Agent Terminal" || item.label === "Docs"
+                    {["Home", "Agent Terminal", "Docs", "Agent Swarm", "Marketplace"].includes(item.label)
                       ? item.label
                       : t(item.label as keyof typeof translations.en, lang)}
                   </span>

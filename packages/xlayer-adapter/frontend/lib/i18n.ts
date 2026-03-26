@@ -33,8 +33,8 @@ export const translations = {
     
     // Navigation
     navWorkflows: 'WORKFLOWS',
-    navMarket: 'AGENT SWARM',
-    navTeams: 'TEAMS',
+    navMarket: 'MARKETPLACE',
+    navTeams: 'AGENT SWARM',
     navTasks: 'TASKS',
     
     // Agent Market
@@ -112,8 +112,8 @@ export const translations = {
     
     // Navigation
     navWorkflows: '工作流',
-    navMarket: '智能体蜂群',
-    navTeams: '团队',
+    navMarket: '市场',
+    navTeams: '智能体蜂群',
     navTasks: '任务',
     
     // Agent Market
