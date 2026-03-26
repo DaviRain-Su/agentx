@@ -55,7 +55,7 @@ gstack 是 Y Combinator CEO Garry Tan 创建的一套 AI 辅助开发工具，�
 
 ### 1. 启动 pi code agent
 
-确保你在 gradience 项目目录中：
+确保你在 AgentX 项目目录中：
 
 ```bash
 cd /Users/davirian/dev/zig/gradience
@@ -109,9 +109,9 @@ cp .pi/skills/gstack/.env.example .pi/skills/gstack/.env
 # 编辑 .env 文件配置必要的 API 密钥
 ```
 
-## 应用到 Gradience 项目
+## 应用到 AgentX 项目
 
-gstack 的工作流程非常适合 Gradience 的协议设计：
+gstack 的工作流程非常适合 AgentX 的协议设计：
 
 ### 1. 使用 `/office-hours` 进行产品诊断
 
@@ -166,14 +166,14 @@ gstack 的工作流程非常适合 Gradience 的协议设计：
 > - 80 行和 150 行的差异在 AI 辅助下毫无意义
 > - "足够好"是错误的直觉，当"完整"只多花费几分钟时
 
-应用到 Gradience：
+应用到 AgentX：
 - 设计协议时追求完整性
 - 不要跳过边界情况和错误处理
 - 文档要完整，不要留 TODO
 
 ### 角色分工
 
-| 角色 | 职责 | Gradience 应用 |
+| 角色 | 职责 | AgentX 应用 |
 |------|------|----------------|
 | CEO | 战略、范围、愿景 | 协议定位、竞争分析 |
 | Eng Manager | 架构、技术决策 | 网络层、共识机制设计 |

@@ -7,7 +7,7 @@
  * - IPFS - Distributed storage
  */
 
-import { Workflow, WorkflowStep } from "@xagent/shared-orchestrator";
+import { Workflow, WorkflowStep } from "@agentx/shared-orchestrator";
 import { WorkflowError, ValidationError } from "../utils/errors";
 import { withApiRetry } from "../utils/retry";
 
@@ -86,8 +86,8 @@ export class WorkflowService {
     }
     
     // xurl: xurl:// prefix or specific format
-    if (hash.startsWith("xurl://") || hash.startsWith("xagent://")) {
-      return { type: "xurl", hash: hash.replace(/^(xurl|xagent):\/\//, "") };
+    if (hash.startsWith("xurl://") || hash.startsWith("agentx://")) {
+      return { type: "xurl", hash: hash.replace(/^(xurl|agentx):\/\//, "") };
     }
     
     return { type: "inline", hash };

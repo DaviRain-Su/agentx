@@ -464,7 +464,7 @@ export class TaskScheduler {
 ### 当前 Cloudflare Worker
 ```typescript
 // packages/worker-cloudflare/src/index.ts
-import { CloudflareRuntime } from '@xagent/shared-orchestrator';
+import { CloudflareRuntime } from '@agentx/shared-orchestrator';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -489,7 +489,7 @@ export default {
 ### 本地节点
 ```typescript
 // packages/node-local/src/index.ts
-import { NodeRuntime } from '@xagent/shared-orchestrator';
+import { NodeRuntime } from '@agentx/shared-orchestrator';
 
 async function main() {
   const runtime = new NodeRuntime({

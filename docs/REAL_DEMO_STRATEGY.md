@@ -609,7 +609,7 @@ export class AgentRegistryService {
     
     const tx = await this.registry.connect(signer).registerAgent(
       name,
-      `https://xagent.io/agents/${name}`,
+      `https://agentx.io/agents/${name}`,
       capabilityHashes
     );
     

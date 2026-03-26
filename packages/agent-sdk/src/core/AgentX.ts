@@ -1,12 +1,12 @@
 /**
- * XAgent — Base class for all XAgent agents on X Layer.
+ * AgentX — Base class for all AgentX agents on X Layer.
  *
  * Power Worker SDK: Extend this class, override `execute()`,
  * and your agent automatically handles USDC fee collection,
  * revenue sharing, and ERC-8004 registration.
  *
  * @example
- * class MyDataAgent extends XAgent {
+ * class MyDataAgent extends AgentX {
  *   constructor(masterKey: string, provider: Provider) {
  *     super(masterKey, "my-data-agent", { perCall: "0.001" }, provider);
  *   }
@@ -62,12 +62,12 @@ const USDC_ABI = [
 // X Layer Testnet USDC
 const USDC_ADDRESS = "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d";
 
-// XAgent platform wallet (receives platform share)
+// AgentX platform wallet (receives platform share)
 const PLATFORM_ADDRESS = "0x39223444d2f9a4d6769e91aa7908CB22CA3A8686";
 
-// ─── XAgent Base Class ────────────────────────────────────────────────
+// ─── AgentX Base Class ────────────────────────────────────────────────
 
-export abstract class XAgent {
+export abstract class AgentX {
   protected readonly wallet: ethers.Wallet;
   protected readonly usdc: ethers.Contract;
   protected readonly provider: ethers.JsonRpcProvider;
@@ -185,7 +185,7 @@ export abstract class XAgent {
    * Call this to sweep agent earnings.
    *
    * @param ownerAddress - Agent owner's wallet (receives 70%)
-   * @param platformAddress - Platform wallet (receives 20%), defaults to XAgent
+   * @param platformAddress - Platform wallet (receives 20%), defaults to AgentX
    */
   async distributeRevenue(
     ownerAddress: string,

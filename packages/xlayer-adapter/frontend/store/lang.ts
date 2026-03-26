@@ -25,7 +25,7 @@ export const useLangStore = create<LangState>()(
       toggleLang: () => set((state) => ({ lang: state.lang === "en" ? "zh" : "en" })),
     }),
     {
-      name: "xagent-language-v1",
+      name: "agentx-language-v1",
       storage: createJSONStorage(() => (typeof window !== "undefined" ? localStorage : inMemoryStorage)),
       partialize: (state) => ({ lang: state.lang }),
     }

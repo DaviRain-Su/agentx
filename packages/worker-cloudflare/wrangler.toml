@@ -1,4 +1,4 @@
-name = "xagent-worker"
+name = "agentx-worker"
 main = "src/index.ts"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
@@ -12,7 +12,7 @@ REGISTRY_CONTRACT    = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
 # CF AI Gateway — routes to Workers AI (free) by default
 # Developer can change AI_GATEWAY_MODEL to use any CF AI Gateway provider
 CF_ACCOUNT_ID        = "fb5d95d6e0ff4055cbf5321f8dfc30e9"
-CF_GATEWAY_NAME      = "xagent"
+CF_GATEWAY_NAME      = "agentx"
 AI_GATEWAY_MODEL     = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # Secrets (set via: npx wrangler secret put <NAME>)
@@ -25,7 +25,7 @@ AI_GATEWAY_MODEL     = "workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 # Cloudflare KV
 [[kv_namespaces]]
-binding = "XAGENT_KV"
+binding = "AGENTX_KV"
 id      = "bab4e5fbd4eb474186d8466929541b21"
 
 # Workers AI (direct binding, used as fallback)

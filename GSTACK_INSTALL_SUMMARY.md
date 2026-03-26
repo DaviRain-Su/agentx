@@ -2,7 +2,7 @@
 
 ## ✅ 安装成功
 
-gstack 已成功安装到 Gradience 项目中！
+gstack 已成功安装到 AgentX 项目中！
 
 ## 📍 安装位置
 
@@ -96,7 +96,7 @@ git pull origin main
 rm -rf .git
 ```
 
-## 💡 在 Gradience 中的应用
+## 💡 在 AgentX 中的应用
 
 ### 1. 协议设计阶段
 - `/office-hours` - 进行产品诊断，找到最窄的切入点

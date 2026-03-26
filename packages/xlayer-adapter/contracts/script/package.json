@@ -1,5 +1,5 @@
 {
-  "name": "xagent-deploy-scripts",
+  "name": "agentx-deploy-scripts",
   "version": "1.0.0",
   "scripts": {
     "create-wallet": "node create-wallet.js",

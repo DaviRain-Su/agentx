@@ -1,5 +1,5 @@
 /**
- * createAgentMarketTool — Discover and inspect agents on the Gradience network.
+ * createAgentMarketTool — Discover and inspect agents on the AgentX network.
  *
  * Queries the on-chain AgentRegistry (ERC-8004) to find available agents,
  * their wallet addresses, capabilities, and per-call pricing.
@@ -38,7 +38,7 @@ export function createAgentMarketTool(config: AgentMarketConfig) {
     name: "list_agents" as const,
     label: "list_agents",
     description:
-      "List available agents on the Gradience network. " +
+      "List available agents on the AgentX network. " +
       "Returns each agent's name, on-chain ID, active status, and reputation score. " +
       "Use agent wallet addresses with a2a_pay to hire specialists.",
     parameters: listSchema,

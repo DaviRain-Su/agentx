@@ -1,7 +1,7 @@
 /**
  * A2APaymentWorkflow — Cloudflare Workflow for atomic A2A payment execution.
  *
- * Uses @xagent/agent-sdk as the single source of truth for agent logic,
+ * Uses @agentx/agent-sdk as the single source of truth for agent logic,
  * wallet derivation, USDC payments, and price/strategy analysis.
  *
  * Steps:
@@ -17,9 +17,9 @@
 
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { ethers } from "ethers";
-import { WorkflowOrchestrator } from "@xagent/agent-sdk";
-import { PriceOracleAgent } from "@xagent/agent-sdk";
-import { TradeStrategyAgent } from "@xagent/agent-sdk";
+import { WorkflowOrchestrator } from "@agentx/agent-sdk";
+import { PriceOracleAgent } from "@agentx/agent-sdk";
+import { TradeStrategyAgent } from "@agentx/agent-sdk";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -29,7 +29,7 @@ const TOOLS: any[] = [
       properties: {
         token: {
           type: "string",
-          description: "Token id (e.g. 'ethereum', 'bitcoin', 'solana')",
+          description: "Token id (e.g. 'ethereum', 'bitcoin', 'okb')",
         },
         source: {
           type: "string",
@@ -256,7 +256,7 @@ Provide a brief 1-2 sentence analysis of this result and what it means for the w
       if (source === "binance") {
         // Map CoinGecko IDs to Binance tickers
         const TICKER_MAP: Record<string, string> = {
-          ethereum: "ETH", bitcoin: "BTC", solana: "SOL",
+          ethereum: "ETH", bitcoin: "BTC",
           "binancecoin": "BNB", "matic-network": "MATIC",
           avalanche: "AVAX", polkadot: "DOT", chainlink: "LINK",
         };
@@ -359,7 +359,7 @@ Provide a brief 1-2 sentence analysis of this result and what it means for the w
         "You are a trade preparation agent. Prepare the DEX trade parameters based on the configuration and previous results. Always require human approval.",
     };
 
-    return `${descriptions[agentType] || "You are an AI agent in the Gradience decentralized network."}
+    return `${descriptions[agentType] || "You are an AI agent in the AgentX decentralized network."}
 
 You have access to tools. Use them to complete your task. After using tools, summarize the result as JSON in this format:
 {"success": true, "data": { ...result fields }}

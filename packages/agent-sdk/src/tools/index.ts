@@ -1,12 +1,12 @@
 /**
- * createXAgentTools — Main entry point for the XAgent SDK.
+ * createAgentXTools — Main entry point for the AgentX SDK.
  *
  * Returns all tools needed for a pi-worker Agent to participate in
- * the XAgent decentralized agent economy:
+ * the AgentX decentralized agent economy:
  *
  *   - a2a_pay:        Pay another agent in USDC (A2A micro-payment)
  *   - get_price:      Fetch live crypto prices (Binance/CoinGecko)
- *   - list_agents:    Discover agents on the XAgent network
+ *   - list_agents:    Discover agents on the AgentX network
  *   - lookup_agent:   Look up agent details by ID or wallet address
  *   - create_task:    Submit an on-chain AI task with USDC budget
  *   - get_task:       Read on-chain task status
@@ -16,17 +16,17 @@
  * ```typescript
  * import { createSqliteTools } from "pi-worker";
  * import { createAgentSession } from "pi-coding-agent-worker";
- * import { createXAgentTools, XAGENT_SYSTEM_PROMPT } from "@xagent/agent-sdk";
+ * import { createAgentXTools, AGENTX_SYSTEM_PROMPT } from "@agentx/agent-sdk";
  *
  * const fileTools = createSqliteTools(getSqliteStore(this.sql));
- * const paymentTools = createXAgentTools({
+ * const paymentTools = createAgentXTools({
  *   masterKey: env.NODE_PRIVATE_KEY,
  *   agentName: "orchestrator",
  *   rpcUrl: env.XLAYER_RPC_URL,
  * });
  *
  * await createAgentSession({
- *   systemPrompt: XAGENT_SYSTEM_PROMPT,
+ *   systemPrompt: AGENTX_SYSTEM_PROMPT,
  *   tools: [...fileTools, ...paymentTools],
  *   ...
  * });
@@ -42,7 +42,7 @@ import { XLAYER_TESTNET } from "../constants.js";
 
 export type { A2APaymentResult } from "./a2a-payment.js";
 
-export interface XAgentToolConfig {
+export interface AgentXToolConfig {
   /** Master private key — agent wallets are derived from this */
   masterKey: string;
   /** This agent's name (used to derive its wallet: keccak256(masterKey:agentName)) */
@@ -64,10 +64,10 @@ function derivePrivateKey(masterKey: string, agentName: string): string {
 }
 
 /**
- * Create all XAgent payment/market/task tools for a pi-worker Agent.
- * Drop the returned array directly into createAgentSession({ tools: [...fileTools, ...xagentTools] }).
+ * Create all AgentX payment/market/task tools for a pi-worker Agent.
+ * Drop the returned array directly into createAgentSession({ tools: [...fileTools, ...agentxTools] }).
  */
-export function createXAgentTools(config: XAgentToolConfig) {
+export function createAgentXTools(config: AgentXToolConfig) {
   const rpcUrl = config.rpcUrl ?? XLAYER_TESTNET.rpc;
   const contracts = {
     usdc:          config.contracts?.usdc          ?? XLAYER_TESTNET.contracts.usdc,
@@ -93,10 +93,10 @@ export function createXAgentTools(config: XAgentToolConfig) {
 }
 
 /**
- * System prompt for an XAgent.
- * Paste into createAgentSession({ systemPrompt: XAGENT_SYSTEM_PROMPT }).
+ * System prompt for an AgentX.
+ * Paste into createAgentSession({ systemPrompt: AGENTX_SYSTEM_PROMPT }).
  */
-export const XAGENT_SYSTEM_PROMPT = `You are an XAgent operating in the decentralized AI agent economy on X Layer.
+export const AGENTX_SYSTEM_PROMPT = `You are an AgentX operating in the decentralized AI agent economy on X Layer.
 
 ## Your Tools
 

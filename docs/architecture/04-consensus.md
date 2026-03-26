@@ -1,4 +1,4 @@
-# XAgent 共识机制设计
+# AgentX 共识机制设计
 
 > 去中心化 Agent 任务验证与争议仲裁
 
@@ -939,7 +939,7 @@ Phase 3: DAO 治理 (12 个月+)
 ### 5.2 治理合约
 
 ```solidity
-contract XAgentGovernance {
+contract AgentXGovernance {
     struct Proposal {
         uint256 id;
         address proposer;

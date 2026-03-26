@@ -1,4 +1,4 @@
-# Gradience Deployment Information
+# AgentX Deployment Information
 
 ## X Layer Testnet Deployment
 

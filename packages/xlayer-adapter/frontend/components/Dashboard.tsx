@@ -43,7 +43,7 @@ export function Dashboard() {
       <header className="border-b border-[var(--phosphor-dim)] p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold terminal-text">GRADIENCE</div>
+            <div className="text-2xl font-bold terminal-text">AGENTX</div>
             <div className="dim text-sm">// TERMINAL_SESSION_ACTIVE</div>
           </div>
           <div className="flex items-center gap-4">

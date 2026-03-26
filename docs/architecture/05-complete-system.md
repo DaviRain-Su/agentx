@@ -1,4 +1,4 @@
-# XAgent 完整系统架构
+# AgentX 完整系统架构
 
 > 当前实现状态的真实架构图 — 包含已实现、未实现、Mock 三类标注
 
@@ -94,14 +94,14 @@
 │                                                                                 │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
 │  │                     WorkflowService (存储抽象)                             │  │
-│  │  支持: Arweave | IPFS | xurl:// | xagent:// | 内联 JSON              │  │
+│  │  支持: Arweave | IPFS | xurl:// | agentx:// | 内联 JSON              │  │
 │  │  ✅ DAG 依赖解析  ✅ 步骤变量替换  ✅ Mock 降级                            │  │
 │  └──────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 │  环境变量 (wrangler.toml + secrets):                                             │
 │  CF_ACCOUNT_ID / CF_GATEWAY_NAME / CF_GATEWAY_TOKEN / AI_GATEWAY_MODEL        │
 │  NODE_PRIVATE_KEY / XLAYER_RPC_URL / XLAYER_CHAIN_ID / DEMO_MODE              │
-│  Bindings: AI, GRADIENCE_KV, AGENT_SESSIONS (DO)                              │
+│  Bindings: AI, AGENTX_KV, AGENT_SESSIONS (DO)                               │
 └─────────────────────────────────────────────────────────────────────────────────┘
                     │                              │
          ┌──────────▼──────┐           ┌───────────▼──────────┐
@@ -261,7 +261,7 @@ AgentSession DO (Orchestrator)
 ### 5.1 Worker API 端点（完整）
 
 ```
-基础 URL: https://xagent-worker.<subdomain>.workers.dev
+基础 URL: https://agentx-worker.<subdomain>.workers.dev
 
 GET  /health
   → { status: "ok", version: "0.1.0", model: "...", nodeId: "..." }
@@ -350,7 +350,7 @@ Cloudflare Edge (全球 CDN)
          ├── Durable Objects（有状态，每会话一个）
          │    AgentSession DO → SQLite 存储对话
          │
-         └── KV Namespace: GRADIENCE_KV
+         └── KV Namespace: AGENTX_KV
               任务状态、分布式锁、日志
 ```
 

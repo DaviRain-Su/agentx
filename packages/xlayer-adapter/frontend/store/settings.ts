@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 const DEFAULT_WORKER_URL =
-  process.env.NEXT_PUBLIC_WORKER_URL || "https://xagent-worker.davirain-yin.workers.dev";
+  process.env.NEXT_PUBLIC_WORKER_URL || "https://agentx-worker.davirain-yin.workers.dev";
 
 export const DEFAULT_SETTINGS = {
   rpcEndpoint: "https://testrpc.xlayer.tech/terigon",
@@ -43,7 +43,7 @@ export const useAppSettingsStore = create<AppSettingsState>()(
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
-      name: "xagent-app-settings-v1",
+      name: "agentx-app-settings-v1",
       storage: createJSONStorage(() => (typeof window !== "undefined" ? localStorage : inMemoryStorage)),
       partialize: (state) => ({
         rpcEndpoint: state.rpcEndpoint,

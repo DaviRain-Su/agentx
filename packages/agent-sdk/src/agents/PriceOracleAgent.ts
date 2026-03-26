@@ -8,7 +8,7 @@
  */
 
 import { ethers } from "ethers";
-import { XAgent } from "../core/XAgent";
+import { AgentX } from "../core/AgentX";
 
 export interface PriceResult {
   symbol: string;
@@ -25,7 +25,7 @@ export interface PriceResult {
   };
 }
 
-export class PriceOracleAgent extends XAgent {
+export class PriceOracleAgent extends AgentX {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     super(masterKey, "price-oracle", { perCall: "0.001", currency: "USDC" }, provider);
   }
@@ -38,7 +38,7 @@ export class PriceOracleAgent extends XAgent {
    * Get live price with on-chain payment.
    *
    * @param callerAddress - Caller's address (must have approved 0.001 USDC)
-   * @param symbol - Token symbol e.g. "ETH", "BTC", "SOL"
+   * @param symbol - Token symbol e.g. "ETH", "BTC", "OKB"
    */
   async getPrice(callerAddress: string, symbol: string): Promise<PriceResult> {
     // 1. Collect fee (real on-chain transfer)
@@ -110,7 +110,7 @@ export class PriceOracleAgent extends XAgent {
 
     // Fallback: CoinGecko
     const cgMap: Record<string, string> = {
-      ETH: "ethereum", BTC: "bitcoin", SOL: "solana",
+      ETH: "ethereum", BTC: "bitcoin",
       BNB: "binancecoin", AVAX: "avalanche-2",
     };
     const cgId = cgMap[ticker];

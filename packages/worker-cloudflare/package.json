@@ -1,7 +1,7 @@
 {
-  "name": "@xagent/worker-cloudflare",
+  "name": "@agentx/worker-cloudflare",
   "version": "0.1.0",
-  "description": "XAgent Worker on Cloudflare",
+  "description": "AgentX Worker on Cloudflare",
   "main": "dist/index.js",
   "scripts": {
     "prepare:pi-worker": "node scripts/prepare-pi-worker.mjs",
@@ -16,8 +16,8 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@xagent/agent-sdk": "file:../agent-sdk",
-    "@xagent/shared-orchestrator": "file:../shared-orchestrator",
+    "@agentx/agent-sdk": "file:../agent-sdk",
+    "@agentx/shared-orchestrator": "file:../shared-orchestrator",
     "@mariozechner/pi-agent-core": "^0.62.0",
     "@mariozechner/pi-ai": "^0.62.0",
     "@sinclair/typebox": "^0.34.48",

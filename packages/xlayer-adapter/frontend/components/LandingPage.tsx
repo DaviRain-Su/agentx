@@ -5,6 +5,7 @@ import { useWeb3 } from "./Web3Provider";
 import { useLangStore } from "@/store/lang";
 import { t } from "@/lib/i18n";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Terminal, 
   Workflow, 
@@ -66,8 +67,9 @@ const HIGHLIGHTS = [
 
 export function LandingPage() {
   const [activeSection, setActiveSection] = useState(0);
-  const { openWalletModal, isConnected } = useWeb3();
+  const { openWalletModal } = useWeb3();
   const { lang, toggleLang } = useLangStore();
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Canvas animation
@@ -164,8 +166,6 @@ export function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (isConnected) return null;
-
   return (
     <div className="min-h-screen bg-[#020202] text-white relative">
       {/* Background Canvas */}
@@ -178,7 +178,7 @@ export function LandingPage() {
             <div className="w-10 h-10 border border-white/30 flex items-center justify-center">
               <Terminal className="w-5 h-5" />
             </div>
-            <span className="font-bold tracking-wider">GRADIENCE</span>
+            <span className="font-bold tracking-wider">AGENTX</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -227,13 +227,13 @@ export function LandingPage() {
                 }
               </p>
               <div className="flex gap-4">
-                <button
-                  onClick={openWalletModal}
+                <Link
+                  href="/dashboard"
                   className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2"
                 >
                   {t('enterSystem', lang)}
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
                 <a
                   href="#features"
                   className="px-8 py-4 border border-white/30 hover:border-white transition"
@@ -430,7 +430,7 @@ export function LandingPage() {
       <footer className="relative z-10 py-12 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="text-sm text-white/40">
-            © 2024 GRADIENCE // POWERED BY X-LAYER
+            © 2024 AGENTX // POWERED BY X-LAYER
           </div>
           <div className="flex gap-6 text-sm text-white/40">
             <a href="#" className="hover:text-white transition">GitHub</a>

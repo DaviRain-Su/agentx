@@ -25,7 +25,6 @@ export function extractRealtimePriceToken(message: string): string | undefined {
 
   if (/比特币|bitcoin|\bbtc\b/i.test(raw)) return "BTC";
   if (/以太坊|ethereum|\beth\b/i.test(raw)) return "ETH";
-  if (/solana|\bsol\b/i.test(raw)) return "SOL";
   if (/dogecoin|\bdoge\b/i.test(raw)) return "DOGE";
 
   const symbolMatch = lower.match(/\b([a-z]{2,10})(?:usdt)?\b/gi)

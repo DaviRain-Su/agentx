@@ -1,7 +1,7 @@
 {
-  "name": "@xagent/shared-orchestrator",
+  "name": "@agentx/shared-orchestrator",
   "version": "0.1.0",
-  "description": "Shared workflow orchestration engine for X Layer and Solana adapters",
+  "description": "Shared workflow orchestration engine for X Layer adapter",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -17,10 +17,9 @@
     "orchestrator",
     "agent",
     "xlayer",
-    "solana",
     "blockchain"
   ],
-  "author": "XAgent Team",
+  "author": "AgentX Team",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.0",

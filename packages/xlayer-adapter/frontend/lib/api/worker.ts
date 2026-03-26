@@ -1,5 +1,5 @@
 const DEFAULT_WORKER_URL =
-  process.env.NEXT_PUBLIC_WORKER_URL || "https://xagent-worker.davirain-yin.workers.dev";
+  process.env.NEXT_PUBLIC_WORKER_URL || "https://agentx-worker.davirain-yin.workers.dev";
 
 function normalizeWorkerBase(workerBase?: string): string {
   const base = (workerBase || DEFAULT_WORKER_URL).trim();

@@ -1,5 +1,5 @@
 /**
- * @xagent/agent-sdk — XAgent Economy SDK for pi-worker
+ * @agentx/agent-sdk — AgentX Economy SDK for pi-worker
  *
  * Extends pi-worker with on-chain payments, agent discovery, and task management
  * on X Layer. Tools follow pi-worker's TypeBox + execute pattern and plug directly
@@ -9,11 +9,11 @@
  * ```typescript
  * import { DurableObject } from "cloudflare:workers";
  * import { getSqliteStore } from "pi-worker";
- * import { createXAgentSession } from "@xagent/agent-sdk";
+ * import { createAgentXSession } from "@agentx/agent-sdk";
  *
  * export class MyAgent extends DurableObject {
  *   async chat(msg: string) {
- *     const { session } = await createXAgentSession({
+ *     const { session } = await createAgentXSession({
  *       sqliteStore: getSqliteStore(this.ctx.storage.sql),
  *       masterKey: this.env.NODE_PRIVATE_KEY,
  *       agentName: "my-agent",
@@ -30,38 +30,38 @@
  * ```typescript
  * import { createSqliteTools } from "pi-worker";
  * import { createAgentSession } from "pi-coding-agent-worker";
- * import { createXAgentTools, XAGENT_SYSTEM_PROMPT } from "@xagent/agent-sdk";
+ * import { createAgentXTools, AGENTX_SYSTEM_PROMPT } from "@agentx/agent-sdk";
  *
  * const fileTools    = createSqliteTools(getSqliteStore(this.ctx.storage.sql));
- * const paymentTools = createXAgentTools({
+ * const paymentTools = createAgentXTools({
  *   masterKey: env.NODE_PRIVATE_KEY,
  *   agentName: "orchestrator",
  * });
  *
  * const { session } = await createAgentSession({
  *   customTools: [...fileTools, ...paymentTools],
- *   resourceLoader: { getSystemPrompt: () => XAGENT_SYSTEM_PROMPT, ... },
+ *   resourceLoader: { getSystemPrompt: () => AGENTX_SYSTEM_PROMPT, ... },
  *   ...
  * });
  * ```
  */
 
 // ── Main integration helpers ─────────────────────────────────────────────────
-export { createXAgentSession }        from "./session.js";
-export type { XAgentSessionConfig }   from "./session.js";
+export { createAgentXSession }        from "./session.js";
+export type { AgentXSessionConfig }   from "./session.js";
 
 // ── Tool factories (for manual assembly) ─────────────────────────────────────
-export { createXAgentTools, XAGENT_SYSTEM_PROMPT } from "./tools/index.js";
-export type { XAgentToolConfig, A2APaymentResult }    from "./tools/index.js";
+export { createAgentXTools, AGENTX_SYSTEM_PROMPT } from "./tools/index.js";
+export type { AgentXToolConfig, A2APaymentResult }    from "./tools/index.js";
 
 export { createA2APaymentTool }   from "./tools/a2a-payment.js";
 export { createPriceOracleTool }  from "./tools/price-oracle.js";
 export { createAgentMarketTool }  from "./tools/agent-market.js";
 export { createTaskManagerTool }  from "./tools/task-manager.js";
 
-// ── Agent classes (extend XAgent or use directly) ────────────────────
-export { XAgent }         from "./core/XAgent.js";
-export type { AgentInfo, AgentPricing, FeeCollectionResult } from "./core/XAgent.js";
+// ── Agent classes (extend AgentX or use directly) ────────────────────
+export { AgentX }         from "./core/AgentX.js";
+export type { AgentInfo, AgentPricing, FeeCollectionResult } from "./core/AgentX.js";
 export { WorkflowOrchestrator }   from "./agents/WorkflowOrchestrator.js";
 export { PriceOracleAgent }       from "./agents/PriceOracleAgent.js";
 export { TradeStrategyAgent }     from "./agents/TradeStrategyAgent.js";
@@ -82,7 +82,7 @@ export function deriveAgentAddress(masterKey: string, agentName: string): string
   return new ethers.Wallet(walletSeed).address;
 }
 
-/** Get wallet addresses for all standard XAgent agents */
+/** Get wallet addresses for all standard AgentX agents */
 export function getAgentWallets(masterKey: string): Record<string, string> {
   return {
     orchestrator:      deriveAgentAddress(masterKey, "orchestrator"),

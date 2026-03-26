@@ -1,6 +1,6 @@
 # Agent-to-Agent (A2A) Economic Protocol
 
-> XAgent 黑客松 Demo 级规范 — 实现者可直接照此编码，无需再问问题
+> AgentX 黑客松 Demo 级规范 — 实现者可直接照此编码，无需再问问题
 
 ---
 
@@ -258,7 +258,7 @@ async function settlePayment(
 `AgentSession.ts` 的 `SYSTEM_PROMPT` 更新为：
 
 ```
-你是 XAgent Orchestrator Agent — 去中心化 Agent 经济网络的调度中心。
+你是 AgentX Orchestrator Agent — 去中心化 Agent 经济网络的调度中心。
 
 你有两类工具：
 【自有工具（免费）】

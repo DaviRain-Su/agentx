@@ -1,7 +1,6 @@
 /**
- * Gradience Shared Orchestrator - Core Types
+ * AgentX Shared Orchestrator - Core Types
  * 
- * Shared across X Layer and Solana adapters
  * Provides workflow orchestration, human-in-the-loop, and state management
  */
 

@@ -1,5 +1,5 @@
 {
-  "name": "@xagent/xlayer-contracts",
+  "name": "@agentx/xlayer-contracts",
   "version": "0.1.0",
   "scripts": {
     "compile": "hardhat compile",

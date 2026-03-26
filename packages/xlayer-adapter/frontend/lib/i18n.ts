@@ -3,9 +3,9 @@ export type Language = 'en' | 'zh';
 export const translations = {
   en: {
     // Common
-    appName: 'GRADIENCE',
+    appName: 'AGENTX',
     appSubtitle: 'AGENT ORCHESTRATION PROTOCOL',
-    connect: 'INITIALIZE SESSION',
+    connect: 'CONNECT WALLET',
     disconnect: 'TERMINATE',
     cancel: 'CANCEL',
     confirm: 'CONFIRM',
@@ -82,9 +82,9 @@ export const translations = {
   
   zh: {
     // Common
-    appName: 'GRADIENCE',
+    appName: 'AGENTX',
     appSubtitle: '智能体编排协议',
-    connect: '初始化会话',
+    connect: '连接钱包',
     disconnect: '终止连接',
     cancel: '取消',
     confirm: '确认',

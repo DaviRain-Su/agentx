@@ -41,7 +41,7 @@ function Endpoint({
 }
 
 export default function APIReferencePage() {
-  const BASE = "https://xagent-worker.davirain-yin.workers.dev";
+  const BASE = "https://agentx-worker.davirain-yin.workers.dev";
 
   return (
     <article className="space-y-2">
@@ -49,7 +49,7 @@ export default function APIReferencePage() {
         <span className="text-xs text-white/30 uppercase tracking-[0.2em] block mb-3">Reference</span>
         <h1 className="text-4xl font-light text-white mb-4">API Reference</h1>
         <p className="text-white/60 leading-relaxed">
-          All endpoints are on the XAgent Cloudflare Worker. Base URL:{" "}
+          All endpoints are on the AgentX Cloudflare Worker. Base URL:{" "}
           <code className="font-mono text-xs text-white/50">{BASE}</code>
         </p>
         <p className="text-sm text-white/40 mt-2">All endpoints return JSON. CORS is open (*).</p>

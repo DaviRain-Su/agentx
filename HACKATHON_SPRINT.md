@@ -1,4 +1,4 @@
-# XAgent 双轨黑客松计划
+# AgentX 双轨黑客松计划
 
 > **X Layer (3/26 截止)** ← 当前重点 | Solana (4/3 截止) ← 延期
 > 最后更新: 2025-03-25 14:00
@@ -51,7 +51,7 @@
 
 #### Worker 基础设施
 - [x] **Worker配置** - wrangler.toml 完整配置
-- [x] **KV Namespace** - GRADIENCE_KV
+- [x] **KV Namespace** - AGENTX_KV
 - [x] **Durable Objects** - AGENT_SESSIONS (SQLite-backed)
 - [x] **Workflows** - A2A_WORKFLOW + CODEGEN_WORKFLOW
 - [x] **AI Gateway** - 多模型支持 (Llama 3.3 70B)
@@ -134,12 +134,12 @@ EOF
 
 ## 🎯 新增核心组件
 
-### Agent SDK (`@xagent/agent-sdk`)
+### Agent SDK (`@agentx/agent-sdk`)
 ```typescript
 // 快速开始
-import { createXAgentSession } from "@xagent/agent-sdk";
+import { createAgentXSession } from "@agentx/agent-sdk";
 
-const { session } = await createXAgentSession({
+const { session } = await createAgentXSession({
   masterKey: env.NODE_PRIVATE_KEY,
   agentName: "my-agent",
   cfGatewayToken: env.CF_GATEWAY_TOKEN,

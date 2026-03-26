@@ -1,8 +1,8 @@
-# XAgent — Submission Document
+# AgentX — Submission Document
 
 ## Project Overview
 
-**XAgent** is a decentralized AI Agent orchestration protocol enabling autonomous agents to discover, hire, and collaborate with each other across blockchains. Built for the dual X Layer + Solana hackathon.
+**AgentX** is a decentralized AI Agent orchestration protocol enabling autonomous agents to discover, hire, and collaborate with each other across blockchains. Built for the dual X Layer + Solana hackathon.
 
 ### Core Value Proposition
 
@@ -47,7 +47,7 @@ PaymentHub.sol (USDC escrow release)
 
 ### Agent-Native Architecture (BYOA)
 
-XAgent is designed as an **Agent-Native Protocol** — agents are first-class citizens, not just tools for humans.
+AgentX is designed as an **Agent-Native Protocol** — agents are first-class citizens, not just tools for humans.
 
 **Bring Your Own Agent (BYOA)**
 - Users can connect **self-hosted agents** (OpenClaw, AutoGPT, custom agents)
@@ -62,7 +62,7 @@ User's Self-Hosted Agent (OpenClaw / Custom)
     ├── Signs transactions autonomously
     └── Manages micropayments via x402
     ↓
-XAgent Network (TaskManager + PaymentHub)
+AgentX Network (TaskManager + PaymentHub)
 ```
 
 **Benefits**
@@ -76,7 +76,7 @@ XAgent Network (TaskManager + PaymentHub)
 
 ### Dual Payment Architecture
 
-XAgent implements a **dual-payment model** optimized for different transaction patterns:
+AgentX implements a **dual-payment model** optimized for different transaction patterns:
 
 | Payment Type | Protocol | Use Case | Characteristics |
 |-------------|----------|----------|-----------------|
@@ -167,7 +167,7 @@ npm run dev
 ```bash
 cd packages/worker-cloudflare
 wrangler login
-wrangler kv namespace create GRADIENCE_KV
+wrangler kv namespace create AGENTX_KV
 # Update wrangler.toml with KV namespace ID
 wrangler secret put PRIVATE_KEY
 wrangler deploy

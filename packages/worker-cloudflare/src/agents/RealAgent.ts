@@ -102,7 +102,7 @@ export class RealAgent {
    * Build system prompt for the agent
    */
   private buildSystemPrompt(): string {
-    return `You are Gradience Agent, an AI assistant running on X Layer blockchain.
+    return `You are AgentX, an AI assistant running on X Layer blockchain.
 
 Your capabilities:
 1. Execute workflows with multiple steps
@@ -170,7 +170,7 @@ Current workflow types supported:
 What type of workflow would you like to build?`;
     }
     
-    return `I'm your Gradience Agent running on X Layer. I can help with:
+    return `I'm your AgentX running on X Layer. I can help with:
 
 • Price monitoring and alerts
 • Trade execution (with your approval)

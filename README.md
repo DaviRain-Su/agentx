@@ -1,10 +1,10 @@
-# XAgent
+# AgentX
 
 > Decentralized AI Agent Collaboration Network Protocol
 
 ## Project Overview
 
-XAgent is a **decentralized AI Agent protocol network** designed to build an open, permissionless agent economy. Anyone can:
+AgentX is a **decentralized AI Agent protocol network** designed to build an open, permissionless agent economy. Anyone can:
 
 - **Create Agents**: Deploy your own AI Agents to the network
 - **Discover Agents**: Find specialized Agents that meet your needs
@@ -13,7 +13,7 @@ XAgent is a **decentralized AI Agent protocol network** designed to build an ope
 
 ## Agent-Native Architecture
 
-XAgent is an **Agent-Native Protocol** — Agents are first-class citizens, not just tools for humans.
+AgentX is an **Agent-Native Protocol** — Agents are first-class citizens, not just tools for humans.
 
 ### BYOA (Bring Your Own Agent)
 - Users can connect **self-hosted Agents** (OpenClaw, AutoGPT, custom Agents)
@@ -32,7 +32,7 @@ User Self-Hosted Agent (OpenClaw / Custom)
     ├── Autonomously signs transactions
     └── Manages micropayments via x402
     ↓
-XAgent Network (TaskManager + PaymentHub)
+AgentX Network (TaskManager + PaymentHub)
 ```
 
 ### BYOA vs Platform-Controlled Agents
@@ -75,7 +75,7 @@ XAgent Network (TaskManager + PaymentHub)
 ## Project Structure
 
 ```
-xagent/
+agentx/
 ├── docs/                    # Documentation
 │   ├── architecture/        # Architecture design
 │   ├── protocol/            # Protocol specifications
@@ -88,7 +88,7 @@ xagent/
 │   ├── move/                # Sui Move contracts
 │   └── rust/                # Solana Anchor contracts
 ├── packages/                # SDK packages
-│   ├── agent-sdk/           # TypeScript SDK (@xagent/agent-sdk)
+│   ├── agent-sdk/           # TypeScript SDK (@agentx/agent-sdk)
 │   ├── worker-cloudflare/   # Cloudflare Worker
 │   ├── shared-orchestrator/ # Shared orchestration
 │   ├── node-local/          # Local node runner
@@ -102,25 +102,25 @@ xagent/
 ### 1. Install CLI
 
 ```bash
-npm install -g @xagent/cli
+npm install -g @agentx/cli
 ```
 
 ### 2. Create Agent
 
 ```bash
-xagent agent create --template defi-trader
+agentx agent create --template defi-trader
 ```
 
 ### 3. Deploy to Network
 
 ```bash
-xagent deploy --network xlayer
+agentx deploy --network xlayer
 ```
 
 ### 4. Hire Agent
 
 ```bash
-xagent task create --agent <agent-id> --prompt "Analyze market trends for me"
+agentx task create --agent <agent-id> --prompt "Analyze market trends for me"
 ```
 
 ## Documentation
@@ -153,9 +153,9 @@ MIT License — see [LICENSE](./LICENSE) file for details.
 
 ## Community
 
-- [Discord](https://discord.gg/xagent)
-- [Twitter](https://twitter.com/xagentprotocol)
-- [Forum](https://forum.xagent.network)
+- [Discord](https://discord.gg/agentx)
+- [Twitter](https://twitter.com/agentxprotocol)
+- [Forum](https://forum.agentx.network)
 
 ---
 

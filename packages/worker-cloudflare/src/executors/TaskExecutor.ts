@@ -1,5 +1,5 @@
 /**
- * Task Executor - Core execution engine for Gradience Worker
+ * Task Executor - Core execution engine for AgentX Worker
  * 
  * Features:
  * - Execute workflow steps with proper state management

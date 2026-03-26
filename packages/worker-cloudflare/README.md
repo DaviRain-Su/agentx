@@ -1,4 +1,4 @@
-# Gradience Worker - Cloudflare
+# AgentX Worker - Cloudflare
 
 AI Agent 执行 Worker，运行在 Cloudflare Workers 上。
 
@@ -46,7 +46,7 @@ npm install
 创建 KV namespace:
 
 ```bash
-wrangler kv:namespace create "GRADIENCE_KV"
+wrangler kv:namespace create "AGENTX_KV"
 ```
 
 更新 `wrangler.toml` 中的 id。
@@ -115,7 +115,7 @@ Content-Type: application/json
 |------|------|------|
 | `PRIVATE_KEY` | ✅ | Worker 钱包私钥 |
 | `XLAYER_RPC_URL` | ✅ | X Layer RPC 端点 |
-| `GRADIENCE_KV` | ✅ | Cloudflare KV 绑定 |
+| `AGENTX_KV` | ✅ | Cloudflare KV 绑定 |
 | `COINGECKO_API_KEY` | ❌ | CoinGecko API Key |
 | `XURL_API_KEY` | ❌ | xurl.io API Key |
 | `DEMO_MODE` | ❌ | 设为 "true" 启用自动确认 |

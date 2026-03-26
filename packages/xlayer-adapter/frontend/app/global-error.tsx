@@ -16,7 +16,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <head>
-        <title>Error - XAgent</title>
+        <title>Error - AgentX</title>
       </head>
       <body className="bg-[#020202] text-white min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">

@@ -1,12 +1,12 @@
-# XAgent Agent 类型体系
+# AgentX Agent 类型体系
 
-> XAgent 网络中的 Agent 分类、能力描述、定价模型和实现状态
+> AgentX 网络中的 Agent 分类、能力描述、定价模型和实现状态
 
 ---
 
 ## 总览
 
-XAgent 网络中的 Agent 是自主经济参与者：有身份、有钱包、能赚钱、能雇佣其他 Agent。
+AgentX 网络中的 Agent 是自主经济参与者：有身份、有钱包、能赚钱、能雇佣其他 Agent。
 
 ```
 Agent 分类体系
@@ -356,7 +356,7 @@ A2A 调用费用: 2.5 USDC / 次（Demo 固定）
 ### 注册流程
 
 ```
-1. 开发者编写 Agent 代码（符合 XAgent Agent 接口）
+1. 开发者编写 Agent 代码（符合 AgentX Agent 接口）
 2. 部署到 Cloudflare Workers（或自托管）
 3. 调用 AgentRegistry8004.register(address, metadata)
    metadata: { name, description, capabilities[], endpoint, pricePerCall }

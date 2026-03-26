@@ -427,7 +427,7 @@ const sessionId = `team-${teamId}-${Date.now()}`;
 
 // 发送初始化消息（告知 Agent 它是哪个团队）
 const initResponse = await fetch(
-  `https://xagent-worker.<subdomain>.workers.dev/agent/chat/${sessionId}`,
+  `https://agentx-worker.<subdomain>.workers.dev/agent/chat/${sessionId}`,
   {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -454,7 +454,7 @@ const handleSendMessage = async (text: string) => {
 
   try {
     const response = await fetch(
-      `https://xagent-worker.<subdomain>.workers.dev/agent/chat/${currentSessionId}`,
+      `https://agentx-worker.<subdomain>.workers.dev/agent/chat/${currentSessionId}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -474,7 +474,7 @@ const handleSendMessage = async (text: string) => {
 **注意**：Worker URL 需要配置为环境变量：
 ```
 # packages/xlayer-adapter/frontend/.env.local
-NEXT_PUBLIC_WORKER_URL=https://xagent-worker.davirain-yin.workers.dev
+NEXT_PUBLIC_WORKER_URL=https://agentx-worker.davirain-yin.workers.dev
 ```
 
 **验收**：

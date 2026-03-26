@@ -11,7 +11,7 @@
  */
 
 import { ethers } from "ethers";
-import { XAgent } from "../core/XAgent";
+import { AgentX } from "../core/AgentX";
 import { PriceOracleAgent } from "./PriceOracleAgent";
 import { TradeStrategyAgent } from "./TradeStrategyAgent";
 
@@ -55,7 +55,7 @@ export interface WorkflowResult {
 
 const XLAYER_EXPLORER = "https://www.oklink.com/x-layer-testnet/tx";
 
-export class WorkflowOrchestrator extends XAgent {
+export class WorkflowOrchestrator extends AgentX {
   private readonly priceAgent: PriceOracleAgent;
   private readonly tradeAgent: TradeStrategyAgent;
 

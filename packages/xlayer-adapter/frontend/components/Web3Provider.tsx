@@ -144,7 +144,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       default:
         // Auto-detect: prefer OKX, then MetaMask
         if (window.okxwallet || window.ethereum?.isOKXWallet) {
-          return window.okxwallet || window.ethereum;
+          return window.okxwallet || window.ethereum || null;
         }
         if (window.ethereum?.isMetaMask) {
           return window.ethereum;

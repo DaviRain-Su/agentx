@@ -1,4 +1,4 @@
-# Gradience 功能测试计划
+# AgentX 功能测试计划
 
 ## 测试环境
 - **网络**: X Layer Testnet

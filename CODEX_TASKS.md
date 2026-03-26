@@ -1,4 +1,4 @@
-# XAgent — Codex 任务主文档
+# AgentX — Codex 任务主文档
 
 > **这是唯一的任务追踪文档。** 所有 TODO、Plan、Sprint 任务统一在此。
 > 状态：🔥 进行中 | ✅ 完成 | ⏳ 待做 | ❌ 阻塞
@@ -9,11 +9,11 @@
 
 ## 产品定位（Codex 执行前必读）
 
-**XAgent 是什么：**
+**AgentX 是什么：**
 去中心化 AI Agent 经济网络。核心主张：AI Agent 之间存在**真实的经济关系**——每次 Agent 雇用另一个 Agent 都有链上 USDC 转账（txHash 可验证），而非普通函数调用。
 
 **核心叙事（黑客松 Pitch）：**
-> "你的量化策略值钱但不能开源。XAgent 让你把它变成一个 Agent 节点，在本地运行，通过 x402 自动收费，代码永远不离开你的机器。"
+> "你的量化策略值钱但不能开源。AgentX 让你把它变成一个 Agent 节点，在本地运行，通过 x402 自动收费，代码永远不离开你的机器。"
 
 **与 LangChain/AutoGen 的差异：**
 - 他们：同进程函数调用，无经济激励
@@ -27,7 +27,7 @@
 | AgentRegistry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | USDC (测试) | `0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e` |
 
-**Worker URL（已部署后）：** `https://xagent-worker.davirain-yin.workers.dev`
+**Worker URL（已部署后）：** `https://agentx-worker.davirain-yin.workers.dev`
 
 ---
 
@@ -38,12 +38,12 @@
 | A2A 原子支付 Workflow（5步，带重试） | `packages/worker-cloudflare/src/workflows/A2APaymentWorkflow.ts` | ✅ |
 | Worker 路由：/api/a2a, /api/a2a/:jobId, /api/agents, /api/deploy | `packages/worker-cloudflare/src/index.ts` | ✅ |
 | AgentSession Durable Object（真实 AI 对话，直接 fetch CF AI Gateway） | `packages/worker-cloudflare/src/agents/AgentSession.ts` | ✅ |
-| Worker 部署上线 | `https://xagent-worker.davirain-yin.workers.dev` | ✅ |
+| Worker 部署上线 | `https://agentx-worker.davirain-yin.workers.dev` | ✅ |
 | Tasks 页面接 TaskManager 链上数据 + A2A 轮询 | `packages/xlayer-adapter/frontend/app/tasks/page.tsx` | ✅ |
 | Workflows 页面提交后写 localStorage jobId | `packages/xlayer-adapter/frontend/app/workflows/page.tsx` | ✅ |
 | Teams 页面接真实 AgentSession（删掉 TeamRegistry 合约调用） | `packages/xlayer-adapter/frontend/app/teams/page.tsx` | ✅ |
 | Market Deploy 按钮跳 Workflows | `packages/xlayer-adapter/frontend/app/market/page.tsx` | ✅ |
-| agent-sdk：createXAgentTools（7个工具）+ createXAgentSession | `packages/agent-sdk/src/` | ✅ |
+| agent-sdk：createAgentXTools（7个工具）+ createAgentXSession | `packages/agent-sdk/src/` | ✅ |
 | 架构文档 | `docs/ARCHITECTURE.md`, `docs/AGENT_ECONOMY.md` | ✅ |
 | Human-in-the-Loop 确认流程 | Worker `/tasks/:id/confirm` + Tasks 页面 UI | ✅ |
 
@@ -59,7 +59,7 @@
 
 **状态：✅ 完成（2026-03-25 11:51）**
 
-Worker URL：`https://xagent-worker.davirain-yin.workers.dev`
+Worker URL：`https://agentx-worker.davirain-yin.workers.dev`
 Version ID：`84eefbe2-4ee7-4cb5-b29e-cd84d6a377eb`
 
 **注意：** 部署前修复了 `AgentSession.ts` — 移除了 `pi-coding-agent-worker` 的 `AuthStorage`/`ModelRegistry` 依赖（这两个类使用 Node.js `fs` 模块，CF Workers 不支持），改为直接 fetch CF AI Gateway + 自实现 tool loop。功能等价，运行更稳定。
@@ -195,7 +195,7 @@ examples/private-strategy-agent/
 
 **index.ts 核心逻辑：**
 ```typescript
-import { createXAgentTools, AgentRegistryService, deriveAgentAddress } from "@xagent/agent-sdk";
+import { createAgentXTools, AgentRegistryService, deriveAgentAddress } from "@agentx/agent-sdk";
 import { ethers } from "ethers";
 
 const masterKey = process.env.NODE_PRIVATE_KEY!;

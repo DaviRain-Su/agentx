@@ -1,7 +1,7 @@
 /**
  * createTaskManagerTool — On-chain task lifecycle management.
  *
- * Wraps the Gradience TaskManager contract (X Layer Testnet):
+ * Wraps the AgentX TaskManager contract (X Layer Testnet):
  *   - create_task: Submit a new AI task with USDC budget
  *   - get_task: Read current task status and progress
  *   - complete_task: Mark task completed and trigger PaymentHub settlement

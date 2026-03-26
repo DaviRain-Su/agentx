@@ -8,7 +8,7 @@
  */
 
 import { ethers } from "ethers";
-import { XAgent } from "../core/XAgent";
+import { AgentX } from "../core/AgentX";
 
 export interface TradeStrategyParams {
   holdings: string[];          // e.g. ["ETH", "BTC"]
@@ -40,7 +40,7 @@ export interface TradeStrategyResult {
   };
 }
 
-export class TradeStrategyAgent extends XAgent {
+export class TradeStrategyAgent extends AgentX {
   constructor(masterKey: string, provider: ethers.JsonRpcProvider) {
     super(masterKey, "trade-strategy", { perCall: "0.005", currency: "USDC" }, provider);
   }

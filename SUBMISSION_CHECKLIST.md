@@ -143,7 +143,7 @@ npm run dev
 
 ## 📝 X Article Outline
 
-**Title**: "Gradience: Building the Decentralized Agent Orchestration Platform on X Layer"
+**Title**: "AgentX: Building the Decentralized Agent Orchestration Platform on X Layer"
 
 **Key Points**:
 - Problem: AI agents are centralized and isolated

@@ -35,7 +35,7 @@ wrangler secret put CF_GATEWAY_TOKEN
 wrangler deploy
 
 # 5. 测试
-curl https://xagent-worker.davirain-yin.workers.dev/health
+curl https://agentx-worker.davirain-yin.workers.dev/health
 ```
 
 ---
@@ -55,7 +55,7 @@ cp .env.example .env.local
 NEXT_PUBLIC_TASK_MANAGER_ADDRESS=0x39223444d2f9a4d6769e91aa7908CB22CA3A8686
 NEXT_PUBLIC_PAYMENT_HUB_ADDRESS=0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60
 NEXT_PUBLIC_USDC_ADDRESS=0x67d0E8f4Ef68D739893209bA018273A8F5Ff845e
-NEXT_PUBLIC_WORKER_URL=https://xagent-worker.davirain-yin.workers.dev
+NEXT_PUBLIC_WORKER_URL=https://agentx-worker.davirain-yin.workers.dev
 ```
 
 ### 3. 启动

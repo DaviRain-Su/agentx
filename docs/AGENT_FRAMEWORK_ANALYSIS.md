@@ -1,4 +1,4 @@
-# Agent 框架深度分析：从 pi-worker 到 XAgent 生态
+# Agent 框架深度分析：从 pi-worker 到 AgentX 生态
 
 ## 一、当前实现的局限性
 
@@ -142,7 +142,7 @@ economy:
 
 然后运行：
 ```bash
-xagent deploy agent.yaml
+agentx deploy agent.yaml
 # 自动完成：
 # - 编译 Worker
 # - 部署到 Cloudflare
@@ -153,7 +153,7 @@ xagent deploy agent.yaml
 
 ---
 
-## 四、XAgent Agent 框架设计
+## 四、AgentX Agent 框架设计
 
 ### 4.1 三层架构
 
@@ -165,7 +165,7 @@ xagent deploy agent.yaml
 │ • Define capabilities and pricing                               │
 │ • No Cloudflare knowledge needed                                │
 ├─────────────────────────────────────────────────────────────────┤
-│ Layer 2: Framework Layer (XAgent Framework)                  │
+│ Layer 2: Framework Layer (AgentX Framework)                  │
 │ ─────────────────────────────────────────────────────────────── │
 │ • Agent Definition Parser                                       │
 │ • Tool Registry & Routing                                       │
@@ -320,7 +320,7 @@ pricing:
 │          │                               │ Deploys              │
 │          │                               ▼                      │
 │          │                        ┌──────────────┐              │
-│          │                        │   XAgent  │              │
+│          │                        │   AgentX  │              │
 │          │                        │   Network    │              │
 │          │                        └──────┬───────┘              │
 │          │                               │                      │
@@ -377,7 +377,7 @@ export class AgentBuilder {
 
 使用示例：
 ```typescript
-import { AgentBuilder } from '@xagent/agent-sdk';
+import { AgentBuilder } from '@agentx/agent-sdk';
 
 const myAgent = new AgentBuilder()
   .define('PriceMonitor', '1.0.0')
@@ -421,7 +421,7 @@ tools:
 
 开发者可以：
 ```typescript
-import { useTool } from '@xagent/tool-registry';
+import { useTool } from '@agentx/tool-registry';
 
 const priceTool = await useTool('fetch_binance_price');
 const price = await priceTool.execute({ symbol: 'ETHUSDT' });
@@ -500,14 +500,14 @@ const trade = await tradeAgent.evaluate({ price, threshold: 3000 });
 
 ### 立即可做 (今晚)
 
-1. ** fork pi-worker**：基于它构建 XAgent Agent SDK
-2. **简化部署**：创建 `xagent-cli` 工具
+1. ** fork pi-worker**：基于它构建 AgentX Agent SDK
+2. **简化部署**：创建 `agentx-cli` 工具
 3. **示例 Agent**：创建 3 个不同级别的示例
 
 ### 本周目标
 
 1. **Agent SDK v0.1**：支持 Level 1-2 Agent
-2. **一键部署**：`xagent deploy agent.yaml`
+2. **一键部署**：`agentx deploy agent.yaml`
 3. **基础市场**：展示和发现 Agent
 
 ### 黑客松展示
@@ -515,11 +515,11 @@ const trade = await tradeAgent.evaluate({ price, threshold: 3000 });
 展示 "如何让任何人 5 分钟部署一个 Agent"：
 ```bash
 # 演示脚本
-npm install -g @xagent/cli
-xagent init my-agent
+npm install -g @agentx/cli
+agentx init my-agent
 # 编辑 agent.yaml
-xagent deploy
-# Agent live at https://agent.xagent.io/my-agent
+agentx deploy
+# Agent live at https://agent.agentx.io/my-agent
 ```
 
 ---

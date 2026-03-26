@@ -52,7 +52,7 @@
           │                    │                    │
           ▼                    ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  CodeFlare      │  │  XAgent      │  │  Coze (扣子)    │
+│  CodeFlare      │  │  AgentX      │  │  Coze (扣子)    │
 │  Workers        │  │  Workers        │  │  Integration    │
 │                 │  │                 │  │                 │
 │  • LLM Agents   │  │  • Task Agents  │  │  • ByteDance    │
@@ -98,11 +98,11 @@ interface AgentTerminalProps {
 ```
 用户打开 Terminal
     ↓
-选择 "Official Agents" → 选择 "XAgent Assistant"
+选择 "Official Agents" → 选择 "AgentX Assistant"
     ↓
 免费开始对话 (limit: 50 messages/day)
     ↓
-Agent 运行在 CodeFlare/XAgent Worker
+Agent 运行在 CodeFlare/AgentX Worker
 ```
 
 **场景 B：购买付费 Agent**
@@ -134,8 +134,8 @@ Team Leader Agent 协调讨论
 ### 免费 Agent (Official)
 | Agent | 功能 | 限制 | 运行位置 |
 |-------|------|------|----------|
-| XAgent Assistant | 平台介绍、基础问答 | 50 msg/day | CodeFlare Worker |
-| Demo Price Monitor | 示例价格监控 | 只读、延迟5min | XAgent Worker |
+| AgentX Assistant | 平台介绍、基础问答 | 50 msg/day | CodeFlare Worker |
+| Demo Price Monitor | 示例价格监控 | 只读、延迟5min | AgentX Worker |
 | Tutorial Bot | 交互式教程 | 无 | CodeFlare Worker |
 
 ### 付费 Agent (Marketplace)
@@ -254,7 +254,7 @@ if (!access.granted) {
 const endpoint = await marketplace.getAgentEndpoint(agentId);
 // 可能是：
 // - CodeFlare Worker URL
-// - XAgent Worker URL  
+// - AgentX Worker URL  
 // - Coze API endpoint
 // - Local Node endpoint
 

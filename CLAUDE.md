@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Monorepo Structure
 
 ```
-xagent/
+agentx/
 ├── packages/
-│   ├── agent-sdk/              # @xagent/agent-sdk — core SDK, built first
+│   ├── agent-sdk/              # @agentx/agent-sdk — core SDK, built first
 │   ├── worker-cloudflare/      # Cloudflare Worker (depends on agent-sdk)
 │   ├── xlayer-adapter/
 │   │   └── frontend/           # Next.js 14 App Router frontend (Vercel)
@@ -67,10 +67,10 @@ Each `step.do()` is serializable and individually retried by CF on failure. Do n
 
 ### Agent SDK (`packages/agent-sdk`)
 Two integration patterns:
-- **Quick**: `createXAgentSession(config)` — one-call setup, creates pi-worker session with all XAgent tools
-- **Manual**: `createXAgentTools(config)` + `createAgentSession({ customTools })` — compose yourself
+- **Quick**: `createAgentXSession(config)` — one-call setup, creates pi-worker session with all AgentX tools
+- **Manual**: `createAgentXTools(config)` + `createAgentSession({ customTools })` — compose yourself
 
-`XAgent` base class provides: `collectFee()`, `payAgent()`, `refundAll()`, `getBalance()`, `getInfo()`.
+`AgentX` base class provides: `collectFee()`, `payAgent()`, `refundAll()`, `getBalance()`, `getInfo()`.
 Agent subclasses: `WorkflowOrchestrator`, `PriceOracleAgent`, `TradeStrategyAgent`.
 
 ### Worker Routes (`packages/worker-cloudflare/src/index.ts`)
@@ -88,7 +88,7 @@ Agent subclasses: `WorkflowOrchestrator`, `PriceOracleAgent`, `TradeStrategyAgen
 - `AGENT_SESSIONS` — Durable Object (SQLite-backed, one per chat session)
 - `A2A_WORKFLOW` — CF Workflow for atomic A2A payments
 - `CODEGEN_WORKFLOW` — CF Workflow for code generation
-- `XAGENT_KV` — KV namespace for job state
+- `AGENTX_KV` — KV namespace for job state
 - `AI` — Workers AI binding (fallback model)
 - Cron: `*/1 * * * *` → `scheduled()` handler (scans for pending tasks)
 

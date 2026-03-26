@@ -1,23 +1,23 @@
 /**
- * createXAgentSession — Launch a pi-worker agent with XAgent payment tools.
+ * createAgentXSession — Launch a pi-worker agent with AgentX payment tools.
  *
- * This is the main integration point between pi-worker and the XAgent
+ * This is the main integration point between pi-worker and the AgentX
  * decentralized agent economy. It:
  *
  * 1. Takes a pi-worker SqliteTextFileStore (from your Durable Object SQLite)
  * 2. Creates file tools via pi-worker's createSqliteTools()
- * 3. Creates XAgent payment/market/task tools
+ * 3. Creates AgentX payment/market/task tools
  * 4. Passes everything to pi-coding-agent-worker's createAgentSession()
  *
  * Usage in a Cloudflare Durable Object:
  * ```typescript
  * import { DurableObject } from "cloudflare:workers";
  * import { getSqliteStore } from "pi-worker";
- * import { createXAgentSession } from "@xagent/agent-sdk";
+ * import { createAgentXSession } from "@agentx/agent-sdk";
  *
  * export class MyAgent extends DurableObject {
  *   async chat(userMessage: string): Promise<string> {
- *     const { session } = await createXAgentSession({
+ *     const { session } = await createAgentXSession({
  *       sqliteStore: getSqliteStore(this.ctx.storage.sql),
  *       masterKey: this.env.NODE_PRIVATE_KEY,
  *       agentName: "my-agent",
@@ -32,9 +32,9 @@
  * ```
  */
 
-import { createXAgentTools, XAGENT_SYSTEM_PROMPT, type XAgentToolConfig } from "./tools/index.js";
+import { createAgentXTools, AGENTX_SYSTEM_PROMPT, type AgentXToolConfig } from "./tools/index.js";
 
-export interface XAgentSessionConfig extends XAgentToolConfig {
+export interface AgentXSessionConfig extends AgentXToolConfig {
   /** pi-worker SqliteTextFileStore — from getSqliteStore(this.ctx.storage.sql) */
   sqliteStore: {
     get(path: string): Promise<string | undefined>;
@@ -56,14 +56,14 @@ export interface XAgentSessionConfig extends XAgentToolConfig {
 }
 
 /**
- * Create a pi-worker agent session pre-loaded with XAgent payment tools.
+ * Create a pi-worker agent session pre-loaded with AgentX payment tools.
  *
  * Combines:
  * - pi-worker's createSqliteTools() for persistent file system
- * - XAgent's createXAgentTools() for on-chain payments
+ * - AgentX's createAgentXTools() for on-chain payments
  * - pi-coding-agent-worker's createAgentSession() for the agent loop
  */
-export async function createXAgentSession(config: XAgentSessionConfig) {
+export async function createAgentXSession(config: AgentXSessionConfig) {
   // Dynamic imports so pi-worker/pi-coding-agent-worker are optional peer deps.
   // If not installed, this throws a clear error.
   let createSqliteTools: (store: unknown) => unknown[];
@@ -78,7 +78,7 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
     createSqliteTools = piWorker.createSqliteTools;
   } catch {
     throw new Error(
-      "@xagent/agent-sdk: createXAgentSession() requires 'pi-worker' to be installed.\n" +
+      "@agentx/agent-sdk: createAgentXSession() requires 'pi-worker' to be installed.\n" +
       "Run: npm install pi-worker"
     );
   }
@@ -92,7 +92,7 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
     SettingsManager = piAgent.SettingsManager;
   } catch {
     throw new Error(
-      "@xagent/agent-sdk: createXAgentSession() requires 'pi-coding-agent-worker' to be installed.\n" +
+      "@agentx/agent-sdk: createAgentXSession() requires 'pi-coding-agent-worker' to be installed.\n" +
       "Run: npm install pi-coding-agent-worker"
     );
   }
@@ -100,8 +100,8 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
   // ── File tools from pi-worker ─────────────────────────────────────────────
   const fileTools = createSqliteTools(config.sqliteStore);
 
-  // ── Payment/market/task tools from XAgent SDK ──────────────────────────
-  const paymentTools = createXAgentTools({
+  // ── Payment/market/task tools from AgentX SDK ──────────────────────────
+  const paymentTools = createAgentXTools({
     masterKey: config.masterKey,
     agentName: config.agentName,
     rpcUrl: config.rpcUrl,
@@ -128,7 +128,7 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
     api: "openai-completions",
     models: [{
       id: modelId,
-      name: `XAgent (${modelId})`,
+      name: `AgentX (${modelId})`,
       reasoning: true,
       input: ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -139,7 +139,7 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
   });
 
   const model = {
-    provider: "ai-gateway", id: modelId, name: `XAgent (${modelId})`,
+    provider: "ai-gateway", id: modelId, name: `AgentX (${modelId})`,
     api: "openai-completions", reasoning: true, input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 200000, maxTokens: 64000,
@@ -153,8 +153,8 @@ export async function createXAgentSession(config: XAgentSessionConfig) {
     retry: { enabled: false },
   });
 
-  // ── Minimal resource loader with XAgent system prompt ──────────────────
-  const systemPrompt = config.systemPrompt ?? XAGENT_SYSTEM_PROMPT;
+  // ── Minimal resource loader with AgentX system prompt ──────────────────
+  const systemPrompt = config.systemPrompt ?? AGENTX_SYSTEM_PROMPT;
   const resourceLoader = {
     getExtensions: () => ({ extensions: [], errors: [], runtime: createMinimalRuntime() }),
     getSkills: () => ({ skills: [], diagnostics: [] }),

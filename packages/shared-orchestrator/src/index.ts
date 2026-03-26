@@ -1,7 +1,7 @@
 /**
- * Gradience Shared Orchestrator
+ * AgentX Shared Orchestrator
  * 
- * Shared workflow orchestration engine for X Layer and Solana adapters.
+ * Workflow orchestration engine for X Layer.
  * Supports sequential, parallel, and conditional execution with human-in-the-loop.
  */
 

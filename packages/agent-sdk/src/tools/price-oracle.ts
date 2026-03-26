@@ -17,7 +17,6 @@ const COINGECKO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
   OKB: "okb",
-  SOL: "solana",
   BNB: "binancecoin",
   USDC: "usd-coin",
   USDT: "tether",

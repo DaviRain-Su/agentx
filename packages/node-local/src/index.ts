@@ -1,4 +1,4 @@
-import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@xagent/shared-orchestrator';
+import { NodeRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from '@agentx/shared-orchestrator';
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 
@@ -60,7 +60,7 @@ async function main() {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🚀 Gradience Execution Node                             ║
+║   🚀 AgentX Execution Node                                ║
 ║                                                           ║
 ║   Node ID: ${config.nodeId.padEnd(46)}║
 ║   Endpoint: ${config.endpoint.padEnd(45)}║

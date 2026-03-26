@@ -16,7 +16,7 @@ export function Navbar() {
               <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text">XAgent</h1>
+              <h1 className="text-xl font-bold gradient-text">AgentX</h1>
               <p className="text-xs text-gray-400">Agent Orchestration</p>
             </div>
           </div>

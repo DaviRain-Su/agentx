@@ -206,7 +206,7 @@ function PublishModal({ onClose }: { onClose: () => void }) {
 
       const metadataURI = endpoint.trim()
         ? `${endpoint.trim().replace(/\/$/, "")}/metadata.json`
-        : `https://xagent.network/agents/${encodeURIComponent(name.trim())}`;
+        : `https://agentx.network/agents/${encodeURIComponent(name.trim())}`;
 
       const capHashes = selectedCaps.map(c =>
         ethers.keccak256(ethers.toUtf8Bytes(c))
@@ -503,7 +503,7 @@ export default function MarketPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-white/40 uppercase tracking-widest">Source</p>
-                  <p className="text-white/60 text-sm">XAgent Worker Network</p>
+                  <p className="text-white/60 text-sm">AgentX Worker Network</p>
                 </div>
               </div>
             </div>

@@ -68,7 +68,7 @@ export class Runner extends WorkerEntrypoint {
 export default { fetch() { return new Response("executor"); } };
 `;
 
-export const SYSTEM_PROMPT = `You are Gradience Orchestrator — an autonomous AI agent on X Layer.
+export const SYSTEM_PROMPT = `You are AgentX Orchestrator — an autonomous AI agent on X Layer.
 
 Use tools to analyze prices, evaluate conditions, prepare trades, and manage workspace files.
 When users ask for token price or realtime market data, always call fetch_price and never fabricate values.

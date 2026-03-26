@@ -1,4 +1,4 @@
-# XAgent 实现规范文档 (For Codex)
+# AgentX 实现规范文档 (For Codex)
 
 **文档版本**: 1.0  
 **目标**: 为 Codex 提供完整、精确的实现指导  
@@ -10,7 +10,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           XAgent Platform                             │
+│                           AgentX Platform                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────────────┐    │
@@ -166,11 +166,11 @@ export class WorkflowStorage {
   saveToLocal(workflow: WorkflowData): void {
     const workflows = this.getAllLocal();
     workflows[workflow.id] = workflow;
-    localStorage.setItem('xagent_workflows', JSON.stringify(workflows));
+    localStorage.setItem('agentx_workflows', JSON.stringify(workflows));
   }
   
   getAllLocal(): Record<string, WorkflowData> {
-    const stored = localStorage.getItem('xagent_workflows');
+    const stored = localStorage.getItem('agentx_workflows');
     return stored ? JSON.parse(stored) : {};
   }
 }
@@ -271,14 +271,14 @@ export class TaskService {
   }
   
   private saveTaskToLocal(taskId: number, workflowHash: string, budget: string): void {
-    const tasks = JSON.parse(localStorage.getItem('xagent_tasks') || '[]');
+    const tasks = JSON.parse(localStorage.getItem('agentx_tasks') || '[]');
     tasks.push({
       taskId,
       workflowHash,
       budget,
       createdAt: Date.now(),
     });
-    localStorage.setItem('xagent_tasks', JSON.stringify(tasks));
+    localStorage.setItem('agentx_tasks', JSON.stringify(tasks));
   }
 }
 ```
@@ -404,7 +404,7 @@ export class AgentChatService {
   }
   
   private buildSystemPrompt(context: ChatContext): string {
-    return `You are ${context.agentName}, an AI agent in the XAgent platform.
+    return `You are ${context.agentName}, an AI agent in the AgentX platform.
     
 Context:
 - User address: ${context.userAddress}
@@ -440,7 +440,7 @@ ANTHROPIC_API_KEY=your_key_here
 COINGECKO_API_KEY=your_key_here
 
 # KV Namespaces
-GRADIENCE_KV=your_kv_namespace_id
+AGENTX_KV=your_kv_namespace_id
 
 # Durable Objects
 AGENT_SESSIONS=your_do_namespace_id
@@ -487,7 +487,7 @@ export default {
 
 async function getPendingTasks(taskManager: ethers.Contract): Promise<Task[]> {
   // 1. 从 KV 获取上次检查区块
-  const lastBlock = await GRADIENCE_KV.get('last_checked_block') || '0';
+  const lastBlock = await AGENTX_KV.get('last_checked_block') || '0';
   
   // 2. 查询 TaskCreated 事件
   const filter = taskManager.filters.TaskCreated();
@@ -505,7 +505,7 @@ async function getPendingTasks(taskManager: ethers.Contract): Promise<Task[]> {
   }
   
   // 4. 更新检查区块
-  await GRADIENCE_KV.put('last_checked_block', currentBlock.toString());
+  await AGENTX_KV.put('last_checked_block', currentBlock.toString());
   
   return pendingTasks;
 }
@@ -521,7 +521,7 @@ async function getPendingTasks(taskManager: ethers.Contract): Promise<Task[]> {
 #!/bin/bash
 set -e
 
-echo "🚀 Deploying XAgent Worker..."
+echo "🚀 Deploying AgentX Worker..."
 
 # Load environment variables
 if [ -f .env ]; then

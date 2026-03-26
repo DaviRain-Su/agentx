@@ -1,5 +1,5 @@
 /**
- * Gradience Worker - Cloudflare Worker for Decentralized Agent Execution Network
+ * AgentX Worker - Cloudflare Worker for Decentralized Agent Execution Network
  *
  * Features:
  * - Runtime abstraction supporting multiple execution environments
@@ -12,8 +12,8 @@
 
 import { ethers } from "ethers";
 import { createDownloadHandler } from "pi-worker";
-import { CloudflareRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from "@xagent/shared-orchestrator";
-import { WorkflowOrchestrator, PriceOracleAgent, TradeStrategyAgent } from "@xagent/agent-sdk";
+import { CloudflareRuntime, RuntimeFactory, ExecutionNode, NodeConfig } from "@agentx/shared-orchestrator";
+import { WorkflowOrchestrator, PriceOracleAgent, TradeStrategyAgent } from "@agentx/agent-sdk";
 import { CONTRACTS } from "./config/contracts";
 import { AgentSession } from "./agents/AgentSession";
 import { A2APaymentWorkflow, type A2AWorkflowParams, type A2AWorkflowResult } from "./workflows/A2APaymentWorkflow";
@@ -48,7 +48,7 @@ export interface Env {
   XURL_ENDPOINT?: string;
 
   // Cloudflare services
-  XAGENT_KV: KVNamespace;
+  AGENTX_KV: KVNamespace;
   AI: Ai;
   AGENT_SESSIONS: DurableObjectNamespace;
   A2A_WORKFLOW: Workflow<A2AWorkflowParams>;
@@ -176,7 +176,7 @@ export default {
       try { body = await request.json() as typeof body; } catch { /* ok */ }
 
       const sessionId = crypto.randomUUID();
-      await env.XAGENT_KV.put(
+      await env.AGENTX_KV.put(
         `agent_session:${sessionId}`,
         JSON.stringify({ template: body.template || "orchestrator", config: body.config, createdAt: Date.now() }),
         { expirationTtl: 86400 }
@@ -200,7 +200,7 @@ export default {
       let body: { approved?: boolean } = {};
       try { body = await request.json() as typeof body; } catch { /* empty body ok */ }
       const approved = body.approved !== false; // default true
-      await env.XAGENT_KV.put(
+      await env.AGENTX_KV.put(
         `human_approval:${taskId}`,
         JSON.stringify({ approved, ts: Date.now() }),
         { expirationTtl: 3600 }
@@ -264,7 +264,7 @@ async function handleAgentAuth(request: Request, env: Env): Promise<Response> {
   }
 
   // Verify wallet signature
-  const message = `Gradience Agent Access: ${taskId}`;
+  const message = `AgentX Access: ${taskId}`;
   let recovered: string;
   try {
     recovered = ethers.verifyMessage(message, signature);
@@ -301,7 +301,7 @@ async function handleAgentAuth(request: Request, env: Env): Promise<Response> {
 
   // Issue 24h session token
   const sessionId = crypto.randomUUID();
-  await env.XAGENT_KV.put(
+  await env.AGENTX_KV.put(
     `agent_session:${sessionId}`,
     JSON.stringify({ taskId, address, createdAt: Date.now() }),
     { expirationTtl: 86400 }
@@ -319,7 +319,7 @@ async function proxyToSession(
   path: string
 ): Promise<Response> {
   // Verify session token
-  const session = await env.XAGENT_KV.get(`agent_session:${sessionId}`);
+  const session = await env.AGENTX_KV.get(`agent_session:${sessionId}`);
   if (!session) {
     return new Response("Unauthorized", { status: 401, headers: CORS });
   }
@@ -547,7 +547,7 @@ async function initializeNode(env: Env): Promise<ExecutionNode> {
   const config: NodeConfig = {
     nodeId: env.NODE_ID || `cf-worker-${crypto.randomUUID()}`,
     privateKey: env.NODE_PRIVATE_KEY,
-    endpoint: "https://xagent-worker.davirain-yin.workers.dev",
+    endpoint: "https://agentx-worker.davirain-yin.workers.dev",
     registryContract: env.REGISTRY_CONTRACT,
     provider: new ethers.JsonRpcProvider(env.XLAYER_RPC_URL),
     capabilities: {

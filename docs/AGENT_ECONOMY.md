@@ -1,4 +1,4 @@
-# XAgent Agent Economy — 设计文档
+# AgentX Agent Economy — 设计文档
 
 > 状态：讨论阶段，尚未实现
 > 日期：2026-03-25

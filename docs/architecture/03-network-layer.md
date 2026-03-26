@@ -1,4 +1,4 @@
-# XAgent 网络层协议设计
+# AgentX 网络层协议设计
 
 > 去中心化的 Agent 发现与通信协议
 
@@ -50,7 +50,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     XAgent P2P Network                       │
+│                     AgentX P2P Network                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
@@ -163,7 +163,7 @@
 ```typescript
 // DHT 键值设计
 interface DHTRecord {
-  // 键: /xagent/agent/{agentId}
+  // 键: /agentx/agent/{agentId}
   // 值: AgentInfo
 }
 
@@ -185,7 +185,7 @@ class AgentDiscovery {
   
   // 注册 Agent 到 DHT
   async registerAgent(agentInfo: AgentInfo): Promise<void> {
-    const key = `/xagent/agent/${agentInfo.agentId}`;
+    const key = `/agentx/agent/${agentInfo.agentId}`;
     const value = encode(agentInfo);
     
     // 存储到 DHT，设置 TTL
@@ -201,7 +201,7 @@ class AgentDiscovery {
   async findAgents(query: AgentQuery): Promise<AgentInfo[]> {
     // 方法 1: 直接查询 (如果知道 agentId)
     if (query.agentId) {
-      const info = await this.dht.get(`/xagent/agent/${query.agentId}`);
+      const info = await this.dht.get(`/agentx/agent/${query.agentId}`);
       return info ? [decode(info)] : [];
     }
     
@@ -212,7 +212,7 @@ class AgentDiscovery {
       
       // 获取详细信息
       const agents = await Promise.all(
-        agentIds.map(id => this.dht.get(`/xagent/agent/${id}`))
+        agentIds.map(id => this.dht.get(`/agentx/agent/${id}`))
       );
       
       // 过滤和排序
@@ -236,7 +236,7 @@ class AgentDiscovery {
     
     return this.dht.subscribe(topic, (message) => {
       const agentId = message.data.toString();
-      return this.dht.get(`/xagent/agent/${agentId}`).then(decode);
+      return this.dht.get(`/agentx/agent/${agentId}`).then(decode);
     });
   }
 }
@@ -277,9 +277,9 @@ class GossipProtocol {
     
     // 发布到多个相关主题
     const topics = [
-      'xagent:agents:all',
-      `xagent:agents:capability:${update.capability}`,
-      `xagent:agents:chain:${update.chainId}`,
+      'agentx:agents:all',
+      `agentx:agents:capability:${update.capability}`,
+      `agentx:agents:chain:${update.chainId}`,
     ];
     
     for (const topic of topics) {
@@ -312,7 +312,7 @@ class GossipProtocol {
     capabilities: string[],
     handler: (task: TaskBroadcast) => void
   ): Promise<void> {
-    const topics = capabilities.map(c => `xagent:tasks:${c}`);
+    const topics = capabilities.map(c => `agentx:tasks:${c}`);
     
     for (const topic of topics) {
       await this.gossip.subscribe(topic);
@@ -427,10 +427,10 @@ contract AgentIndex {
 ### 4.2 消息格式
 
 ```protobuf
-// xagent.proto
+// agentx.proto
 syntax = "proto3";
 
-package xagent;
+package agentx;
 
 // 基础消息包装
 message Message {
@@ -731,7 +731,7 @@ class TaskNegotiationProtocol {
   ): Promise<void> {
     // 订阅相关主题
     for (const cap of capabilities) {
-      await this.gossip.subscribe(`xagent:tasks:${cap}`);
+      await this.gossip.subscribe(`agentx:tasks:${cap}`);
     }
     
     // 处理传入消息

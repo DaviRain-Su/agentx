@@ -16,14 +16,14 @@ wrangler login
 ### 2. 创建 KV Namespace
 
 ```bash
-wrangler kv:namespace create "GRADIENCE_KV"
+wrangler kv:namespace create "AGENTX_KV"
 ```
 
 复制输出的 id，更新 `wrangler.toml`：
 
 ```toml
 [[kv_namespaces]]
-binding = "GRADIENCE_KV"
+binding = "AGENTX_KV"
 id = "你的_kv_id"
 ```
 
@@ -52,10 +52,10 @@ wrangler deploy
 
 ```bash
 # Health check
-curl https://xagent-worker.你的子域名.workers.dev/health
+curl https://agentx-worker.你的子域名.workers.dev/health
 
 # 手动触发任务（测试用）
-curl -X POST https://xagent-worker.你的子域名.workers.dev/execute \
+curl -X POST https://agentx-worker.你的子域名.workers.dev/execute \
   -H "Content-Type: application/json" \
   -d '{"taskId": "test-1", "workflowHash": "mock"}'
 ```

@@ -1,4 +1,4 @@
-# XAgent 功能审计报告
+# AgentX 功能审计报告
 
 **审计日期**: 2025-03-25  
 **版本**: Hackathon MVP  
@@ -388,7 +388,7 @@
 
 ```bash
 # 1. 合约连接测试
-cd /Users/davirian/dev/zig/xagent
+cd /Users/davirian/dev/zig/agentx
 node test-contract.js
 
 # 2. 前端构建测试

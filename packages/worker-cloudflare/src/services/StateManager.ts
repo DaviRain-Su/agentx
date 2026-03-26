@@ -51,10 +51,10 @@ export class StateManager {
   private readonly LOCK_TTL = 300; // 5 minutes
 
   constructor(env: Env) {
-    if (!env.XAGENT_KV) {
-      throw new Error("XAGENT_KV binding not found");
+    if (!env.AGENTX_KV) {
+      throw new Error("AGENTX_KV binding not found");
     }
-    this.kv = env.XAGENT_KV;
+    this.kv = env.AGENTX_KV;
   }
 
   /**
