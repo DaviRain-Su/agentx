@@ -432,7 +432,13 @@ async function handleA2ASimulate(request: Request, env: Env): Promise<Response> 
   const budget = body.budget || 0.01;
 
   let price = 0;
+  // OKX first (hackathon partner)
   try {
+    const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${symbol}-USDT`);
+    if (res.ok) { const d = await res.json() as { code: string; data: Array<{ last: string }> }; if (d.code === "0") price = parseFloat(d.data[0].last); }
+  } catch { /* ignore */ }
+  // Binance fallback
+  if (!price) try {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
     if (res.ok) { const d = await res.json() as { price: string }; price = parseFloat(d.price); }
   } catch { /* ignore */ }
@@ -555,12 +561,12 @@ async function handleA2AExecute(request: Request, env: Env): Promise<Response> {
 
     // ── Step 3: Fetch live price ──────────────────────────────────────────────
     let price = 0;
-    let priceSource = "binance";
+    let priceSource = "okx";
     try {
-      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+      const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${symbol}-USDT`);
       if (res.ok) {
-        const d = await res.json() as { price: string };
-        price = parseFloat(d.price);
+        const d = await res.json() as { code: string; data: Array<{ last: string }> };
+        if (d.code === "0") price = parseFloat(d.data[0].last);
       }
     } catch { /* fallback below */ }
     if (!price) {

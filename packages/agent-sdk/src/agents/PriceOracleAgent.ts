@@ -13,7 +13,7 @@ import { AgentX } from "../core/AgentX";
 export interface PriceResult {
   symbol: string;
   price: number;
-  source: "binance" | "coingecko";
+  source: "okx" | "binance" | "coingecko";
   timestamp: number;
   // On-chain payment proof
   payment: {
@@ -96,10 +96,21 @@ export class PriceOracleAgent extends AgentX {
 
   // ─── Internal ──────────────────────────────────────────────────────────────
 
-  private async fetchPrice(symbol: string): Promise<{ price: number; source: "binance" | "coingecko" }> {
+  private async fetchPrice(symbol: string): Promise<{ price: number; source: "okx" | "binance" | "coingecko" }> {
     const ticker = symbol.toUpperCase();
 
-    // Primary: Binance
+    // Primary: OKX (official partner — X Layer hackathon)
+    try {
+      const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${ticker}-USDT`);
+      if (res.ok) {
+        const data = await res.json() as { code: string; data: Array<{ last: string }> };
+        if (data.code === "0" && data.data?.[0]?.last) {
+          return { price: parseFloat(data.data[0].last), source: "okx" };
+        }
+      }
+    } catch { /* fallthrough */ }
+
+    // Fallback: Binance
     try {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${ticker}USDT`);
       if (res.ok) {
@@ -110,8 +121,8 @@ export class PriceOracleAgent extends AgentX {
 
     // Fallback: CoinGecko
     const cgMap: Record<string, string> = {
-      ETH: "ethereum", BTC: "bitcoin",
-      BNB: "binancecoin", AVAX: "avalanche-2",
+      ETH: "ethereum", BTC: "bitcoin", OKB: "okb",
+      BNB: "binancecoin", AVAX: "avalanche-2", SOL: "solana",
     };
     const cgId = cgMap[ticker];
     if (cgId) {

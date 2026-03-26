@@ -99,6 +99,19 @@ export async function fetchRealtimePriceTextWithEnv(
     }
   }
 
+  // OKX — primary source (X Layer hackathon partner)
+  const okxUrl = `https://www.okx.com/api/v5/market/ticker?instId=${symbol}-USDT`;
+  try {
+    const res = await fetch(okxUrl, { headers: { "Cache-Control": "no-cache" } });
+    if (res.ok) {
+      const data = await res.json() as { code: string; data: Array<{ last: string }> };
+      const value = Number(data?.data?.[0]?.last);
+      if (data.code === "0" && Number.isFinite(value)) {
+        quotes.push({ source: "OKX" as any, value, fetchedAt: new Date().toISOString() });
+      }
+    }
+  } catch { /* fallthrough */ }
+
   const binanceUrl = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT&t=${Date.now()}`;
   try {
     const res = await fetch(binanceUrl, { headers: { "Cache-Control": "no-cache" } });
@@ -142,7 +155,8 @@ export async function fetchRealtimePriceTextWithEnv(
     quotes.push({ source: "Kraken", value, fetchedAt: new Date().toISOString() });
   }
 
-  const primary = quotes.find((q) => q.source === "Uniswap")
+  const primary = quotes.find((q) => q.source === "OKX")
+    || quotes.find((q) => q.source === "Uniswap")
     || quotes.find((q) => q.source === "Binance")
     || quotes.find((q) => q.source === "Coinbase")
     || quotes[0];
