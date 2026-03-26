@@ -47,7 +47,15 @@ export interface AgentConnectorConfig {
   model?: string;
   /** Capabilities advertised to orchestrators */
   capabilities?: string[];
-  /** X Layer RPC URL (only needed for on-chain payment features) */
+  /**
+   * Fee charged per call in OKB (X402 protocol).
+   * When set, /chat requires X-Payment-Proof header — callers must pay first.
+   * If omitted, /chat is free (no X402 enforcement).
+   *
+   * @example "0.001"  // 0.001 OKB per call
+   */
+  fee?: string;
+  /** X Layer RPC URL (only needed for on-chain payment verification) */
   rpcUrl?: string;
 }
 

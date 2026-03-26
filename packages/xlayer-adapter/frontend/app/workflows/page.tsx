@@ -436,7 +436,7 @@ export default function WorkflowsPage() {
     router.push("/tasks");
   };
 
-  // Create task on chain (or run simulated flow when wallet is not connected)
+  // ── Run Workflow: wallet signature → approve axUSDC → A2A payment on-chain ──
   const handleCreateTask = async (workflowId: string) => {
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow) return;
@@ -444,101 +444,84 @@ export default function WorkflowsPage() {
     const symbol = workflow.id === "wf-2" ? "BTC" : "ETH";
     const a2aType = workflow.id === "wf-1" ? "price_alert" : "price_only";
     const threshold = workflow.id === "wf-1" ? 1800 : 0;
-    const walletReady = !!taskManager && !!usdc && !!signer && !!address;
+
+    // Must have wallet connected
+    if (!usdc || !signer || !address) {
+      alert(lang === "en"
+        ? "Please connect your wallet first. You need axUSDC tokens to run a workflow."
+        : "请先连接钱包。运行工作流需要 axUSDC 代币。");
+      return;
+    }
 
     setIsCreating(true);
     try {
-      if (!walletReady) {
-        await runSimulationFlow(workflow, effectiveBudget, symbol, a2aType, threshold);
-        return;
-      }
-      const tm = taskManager as NonNullable<typeof taskManager>;
-      const token = usdc as NonNullable<typeof usdc>;
+      const token = usdc as ethers.Contract;
       const userAddress = address as string;
+      const budgetWei = ethers.parseUnits(effectiveBudget, 6);
 
-      // 1. Generate workflow hash
-      const workflowData = JSON.stringify({
-        steps: workflow.steps.map(s => ({ id: s.id, agentId: s.agentId, config: s.config })),
-        mode: workflow.executionMode,
-        createdAt: Date.now(),
-      });
-      const workflowHash = ethers.keccak256(ethers.toUtf8Bytes(workflowData));
+      // 1. Check user balance
+      const balance = await token.balanceOf(userAddress);
+      if (balance < budgetWei) {
+        const balStr = ethers.formatUnits(balance, 6);
+        const needMore = parseFloat(effectiveBudget) - parseFloat(balStr);
+        if (confirm(
+          lang === "en"
+            ? `Insufficient axUSDC balance (have ${balStr}, need ${effectiveBudget}).\n\nMint ${Math.ceil(needMore)} axUSDC to your wallet? (testnet only)`
+            : `axUSDC 余额不足（有 ${balStr}，需要 ${effectiveBudget}）。\n\n为你的钱包铸造 ${Math.ceil(needMore)} axUSDC？（仅测试网）`
+        )) {
+          const mintAmount = ethers.parseUnits(String(Math.ceil(needMore + 10)), 6);
+          const mintTx = await token.mint(userAddress, mintAmount, { gasLimit: 100000 });
+          await mintTx.wait();
+        } else {
+          return;
+        }
+      }
 
-      // 2. Generate agent DIDs (placeholder - would query 8004 registry in production)
-      const agentDIDs = workflow.steps.map(() => 
-        ethers.keccak256(ethers.toUtf8Bytes("agent_did_placeholder"))
-      );
+      // 2. Get orchestrator address from worker
+      const agents = await workerApi.getAgents(workerBase);
+      const orchestratorAddr = agents?.orchestrator?.address;
+      if (!orchestratorAddr || !ethers.isAddress(orchestratorAddr)) {
+        throw new Error("Cannot fetch orchestrator address from worker");
+      }
 
-      // 3. Calculate budget
-      const totalBudget = ethers.parseUnits(effectiveBudget, 6);
-
-      // 4. Check and approve USDC
-      const currentAllowance = await token.allowance(userAddress, await tm.getAddress());
-      if (currentAllowance < totalBudget) {
-        const approveTx = await token.approve(await tm.getAddress(), totalBudget);
+      // 3. Approve orchestrator to spend axUSDC (wallet signature #1)
+      const currentAllowance = await token.allowance(userAddress, orchestratorAddr);
+      if (currentAllowance < budgetWei) {
+        const approveTx = await token.approve(orchestratorAddr, budgetWei);
         await approveTx.wait();
       }
 
-      // 5. Create task on chain
-      const tx = await tm.createTask(workflowHash, agentDIDs, totalBudget);
-      const receipt = await tx.wait();
+      // 4. Trigger real A2A workflow on worker (orchestrator will transferFrom)
+      const data = await workerApi.startA2A({
+        symbol,
+        budget: parseFloat(effectiveBudget),
+        callerAddress: userAddress,
+        type: a2aType,
+        threshold,
+      }, workerBase);
 
-      // Extract task ID from event
-      let taskId = "unknown";
-      if (receipt?.logs) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = tm.interface.parseLog(log);
-            if (parsed?.name === "TaskCreated") {
-              taskId = parsed.args.taskId?.toString() || "unknown";
-              break;
-            }
-          } catch {
-            // Skip non-matching logs
-          }
-        }
-      }
-
-      setCreatedTaskId(taskId);
-      await fetchTasks(); // Refresh task list
-
-      // 6. Also trigger A2A Workflow for real-time payment tracking
-      try {
-        await ensureA2AAllowance(token, userAddress, effectiveBudget);
-        const data = await workerApi.startA2A({
-          symbol,
-          budget: parseFloat(effectiveBudget),
-          callerAddress: userAddress,
-          type: a2aType,
-          threshold,
-        }, workerBase);
-        if (data.jobId) {
-          saveA2AJob({ jobId: data.jobId, symbol, createdAt: Date.now() });
-        }
-      } catch (err) {
-        console.error("A2A workflow trigger failed:", err);
-        try {
-          await runSimulationFlow(workflow, effectiveBudget, symbol, a2aType, threshold);
-          return;
-        } catch (simError) {
-          console.error("Simulation fallback failed:", simError);
-        }
+      if (data.jobId) {
+        saveA2AJob({ jobId: data.jobId, symbol, createdAt: Date.now() });
+        setCreatedTaskId(data.jobId);
       }
 
       router.push("/tasks");
-      setTimeout(() => setCreatedTaskId(null), 5000);
     } catch (error) {
-      console.error("Failed to create task:", error);
-      if (walletReady) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("Workflow failed:", msg);
+
+      // Fallback to simulation only if user explicitly agrees
+      if (confirm(
+        lang === "en"
+          ? `On-chain execution failed: ${msg}\n\nRun in simulation mode instead?`
+          : `链上执行失败：${msg}\n\n改用模拟模式运行？`
+      )) {
         try {
           await runSimulationFlow(workflow, effectiveBudget, symbol, a2aType, threshold);
-          return;
-        } catch (simError) {
-          alert(`Failed to create task: ${(error as Error).message}. Simulation fallback also failed: ${simError instanceof Error ? simError.message : String(simError)}`);
-          return;
+        } catch (simErr) {
+          alert(`Simulation also failed: ${simErr instanceof Error ? simErr.message : String(simErr)}`);
         }
       }
-      alert("Failed to create task: " + (error as Error).message);
     } finally {
       setIsCreating(false);
     }

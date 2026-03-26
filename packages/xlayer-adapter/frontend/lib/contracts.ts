@@ -18,7 +18,7 @@ const getAddress = (addr: string): string => {
 export const CONTRACTS = {
   taskManager: getAddress(process.env.NEXT_PUBLIC_TASK_MANAGER_ADDRESS || '0x39223444d2f9a4d6769e91aa7908CB22CA3A8686'),
   paymentHub: getAddress(process.env.NEXT_PUBLIC_PAYMENT_HUB_ADDRESS || '0x6FAeAD7A1cF50Bd81B82446737E0A27F43573a60'),
-  usdc: getAddress('0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d'),
+  usdc: getAddress('0xAdaA7CE9dadB185332D76Caea2a8647F685a667d'), // axUSDC (AgentX Test USDC)
   agentRegistry8004: getAddress('0x8004A818BFB912233c491871b3d84c89A494BD9e'),
 };
 
@@ -172,6 +172,23 @@ export const USDC_ABI = [
     "inputs": [],
     "name": "decimals",
     "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "to", "type": "address"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "mint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symbol",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
     "stateMutability": "view",
     "type": "function"
   }];
