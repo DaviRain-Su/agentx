@@ -61,7 +61,7 @@ skills-lock.json
 
 # Foundry
 broadcast/
-lib/
+contracts/lib/
 
 # Misc
 *.tsbuildinfo
