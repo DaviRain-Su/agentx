@@ -138,10 +138,10 @@ curl https://my-sentiment-agent.<your-subdomain>.workers.dev/info`}</Code>
       <H2>5 — Register on-chain (ERC-8004)</H2>
       <p className="text-sm text-white/60 leading-relaxed mb-2">
         Publishing your agent to the AgentRegistry makes it discoverable in the AgentX
-        Market and callable by other agents via A2A.
+        Swarm and callable by other agents via A2A.
       </p>
       <p className="text-sm text-white/60 mb-3">
-        <strong className="text-white">Option A — via the UI:</strong> Go to Agent Market → Publish Agent.
+        <strong className="text-white">Option A — via the UI:</strong> Go to Agent Swarm → Publish Agent.
         Fill in name, endpoint URL, capabilities. The form calls <code className="font-mono text-xs text-white/40">AgentRegistry.registerAgent()</code> using your MetaMask wallet.
       </p>
       <p className="text-sm text-white/60 mb-3">

@@ -11,7 +11,7 @@ import { useWeb3 } from "./Web3Provider";
 
 const NAV_ITEMS = [
   { id: "workflows", label: "WORKFLOWS", desc: "Build & Deploy" },
-  { id: "market", label: "AGENT_MARKET", desc: "Browse & Publish" },
+  { id: "market", label: "AGENT_SWARM", desc: "Browse & Publish" },
   { id: "teams", label: "TEAM_FORMATION", desc: "Create Squads" },
   { id: "tasks", label: "TASK_MONITOR", desc: "Active Operations" },
 ];
@@ -43,7 +43,7 @@ export function Dashboard() {
       <header className="border-b border-[var(--phosphor-dim)] p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold terminal-text">AGENTX</div>
+            <div className="text-2xl font-bold terminal-text" style={{ color: '#1de1f1' }}>AGENTX</div>
             <div className="dim text-sm">// TERMINAL_SESSION_ACTIVE</div>
           </div>
           <div className="flex items-center gap-4">

@@ -18,8 +18,8 @@ export const translations = {
     enterSystem: 'ENTER SYSTEM',
     
     // Features
-    agentMarket: 'AGENT MARKET',
-    agentMarketDesc: 'Discover and deploy pre-built agents. Publish your own agents to the marketplace.',
+    agentMarket: 'AGENT SWARM',
+    agentMarketDesc: 'Discover and deploy pre-built agents. Publish your own agents to the swarm.',
     teamFormation: 'TEAM FORMATION',
     teamFormationDesc: 'Assemble agent squads. Coordinate multi-agent conversations and task execution.',
     workflowBuilder: 'WORKFLOW BUILDER',
@@ -33,7 +33,7 @@ export const translations = {
     
     // Navigation
     navWorkflows: 'WORKFLOWS',
-    navMarket: 'AGENT MARKET',
+    navMarket: 'AGENT SWARM',
     navTeams: 'TEAMS',
     navTasks: 'TASKS',
     
@@ -97,8 +97,8 @@ export const translations = {
     enterSystem: '进入系统',
     
     // Features
-    agentMarket: '智能体市场',
-    agentMarketDesc: '发现并部署预构建智能体。将你自己的智能体发布到市场。',
+    agentMarket: '智能体蜂群',
+    agentMarketDesc: '发现并部署预构建智能体。将你自己的智能体发布到蜂群。',
     teamFormation: '团队组建',
     teamFormationDesc: '组建智能体小队。协调多智能体对话和任务执行。',
     workflowBuilder: '工作流构建器',
@@ -112,7 +112,7 @@ export const translations = {
     
     // Navigation
     navWorkflows: '工作流',
-    navMarket: '智能体市场',
+    navMarket: '智能体蜂群',
     navTeams: '团队',
     navTasks: '任务',
     

@@ -428,7 +428,7 @@ export default function AgentPage() {
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">
-            Agent Marketplace
+            Agent Swarm
           </span>
           <h1 className="text-4xl font-light text-white">Choose Your Agent</h1>
         </div>
@@ -867,7 +867,7 @@ export default function AgentPage() {
         <div className="flex items-center justify-center h-[60vh]">
           <div className="text-center space-y-4">
             <Lock className="w-12 h-12 text-white/20 mx-auto" />
-            <p className="text-white/50">Connect your wallet to access the Agent Marketplace.</p>
+            <p className="text-white/50">Connect your wallet to access the Agent Swarm.</p>
           </div>
         </div>
       </DashboardLayout>

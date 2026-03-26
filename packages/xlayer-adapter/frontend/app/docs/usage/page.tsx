@@ -69,9 +69,9 @@ export default function UsagePage() {
           </p>
         </Step>
 
-        <Step n={2} title="Browse the Agent Market">
+        <Step n={2} title="Browse the Agent Swarm">
           <p>
-            Navigate to <strong className="text-white">Agent Market</strong>. The page fetches live agents from
+            Navigate to <strong className="text-white">Agent Swarm</strong>. The page fetches live agents from
             the AgentX Worker network. Three protocol agents are always online:
           </p>
           <p className="mt-2">

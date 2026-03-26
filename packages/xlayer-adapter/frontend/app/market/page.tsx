@@ -416,9 +416,9 @@ export default function MarketPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Elite Nodes</span>
+            <span className="text-xs text-white/40 uppercase tracking-[0.2em] block mb-2">Active Swarm</span>
             <h1 className="text-4xl lg:text-5xl font-light text-white">
-              {lang === "en" ? "Agent Market" : "智能体市场"}
+              {lang === "en" ? "Agent Swarm" : "智能体蜂群"}
             </h1>
           </div>
           <div className="flex items-center gap-3">

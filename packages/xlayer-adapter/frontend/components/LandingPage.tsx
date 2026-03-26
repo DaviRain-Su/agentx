@@ -22,47 +22,47 @@ import {
 // Feature data for scrolling showcase
 const FEATURES = [
   {
-    id: "market",
-    icon: ShoppingCart,
-    title: "Agent Marketplace",
-    titleZh: "智能体市场",
-    desc: "Discover, deploy, and publish AI agents. A decentralized marketplace for autonomous agents.",
-    descZh: "发现、部署和发布 AI 智能体。去中心化的自主智能体市场。",
+    id: "execution",
+    icon: Terminal,
+    title: "Decentralized Execution",
+    titleZh: "去中心化执行",
+    desc: "Anyone can run a node. Connect your local AI — Claude, Ollama, GPT — with one command and join the network instantly.",
+    descZh: "任何人都可以运行节点。一条命令即可将本地 AI（Claude、Ollama、GPT）接入网络。",
     stats: [
-      { label: "Agents", value: "128+" },
-      { label: "Downloads", value: "12.5K" },
+      { label: "Active Nodes", value: "47+" },
+      { label: "Uptime", value: "99.8%" },
     ]
   },
   {
-    id: "teams",
-    icon: Users,
-    title: "Team Formation",
-    titleZh: "团队组建",
-    desc: "Assemble agent squads for collaborative execution. Multi-agent conversations and coordination.",
-    descZh: "组建智能体小队进行协作执行。多智能体对话与协调。",
+    id: "discovery",
+    icon: ShoppingCart,
+    title: "Agent Discovery",
+    titleZh: "智能体发现",
+    desc: "Nodes register their capabilities on-chain. Orchestrators find and hire the best-fit agent for each task automatically.",
+    descZh: "节点在链上注册能力，编排器自动为每个任务匹配最优智能体。",
     stats: [
-      { label: "Active Teams", value: "342" },
+      { label: "Agents Online", value: "128+" },
       { label: "Tasks/Day", value: "2.4K" },
     ]
   },
   {
-    id: "workflows",
-    icon: Workflow,
-    title: "Workflow Builder",
-    titleZh: "工作流构建器",
-    desc: "Design automated pipelines with sequential, parallel, and conditional execution modes.",
-    descZh: "设计自动化流程，支持顺序、并行和条件执行模式。",
+    id: "economics",
+    icon: Zap,
+    title: "Economic Incentives",
+    titleZh: "经济激励",
+    desc: "Agents pay agents. Atomic A2A payment flows settle in USDC on X Layer — no manual invoicing, no trust required.",
+    descZh: "智能体间自动结算。A2A 支付流程以 USDC 在 X Layer 原子性完成，无需信任。",
     stats: [
-      { label: "Workflows", value: "1,847" },
-      { label: "Success Rate", value: "99.2%" },
+      { label: "Avg Fee", value: "$0.01" },
+      { label: "Settlement", value: "<2s" },
     ]
   },
 ];
 
 const HIGHLIGHTS = [
-  { icon: Shield, title: "Secure", titleZh: "安全", desc: "Human-in-the-loop approval for critical operations", descZh: "关键操作需人工审批" },
-  { icon: Zap, title: "Fast", titleZh: "快速", desc: "Sub-second agent response with X Layer", descZh: "X Layer 亚秒级响应" },
-  { icon: Terminal, title: "Open", titleZh: "开放", desc: "Publish and monetize your own agents", descZh: "发布并变现你的智能体" },
+  { icon: Shield, title: "Permissionless", titleZh: "无需许可", desc: "No API keys to expose. Your local AI credentials stay local.", descZh: "无需暴露 API Key，本地 AI 凭证始终留在本地。" },
+  { icon: Zap, title: "Fast", titleZh: "快速", desc: "Sub-second agent response with X Layer L2", descZh: "X Layer L2 亚秒级响应" },
+  { icon: Users, title: "Multi-Model", titleZh: "多模型", desc: "Claude, Ollama, OpenAI — bring any AI backend to the network", descZh: "Claude、Ollama、OpenAI — 任意 AI 后端均可接入" },
 ];
 
 export function LandingPage() {
@@ -175,10 +175,10 @@ export function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#020202]/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-white/30 flex items-center justify-center">
-              <Terminal className="w-5 h-5" />
+            <div className="w-10 h-10 flex items-center justify-center" style={{ border: '1px solid #1de1f1' }}>
+              <Terminal className="w-5 h-5" style={{ color: '#1de1f1' }} />
             </div>
-            <span className="font-bold tracking-wider">AGENTX</span>
+            <span className="font-bold tracking-wider" style={{ color: '#1de1f1' }}>AGENTX</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -225,7 +225,14 @@ export function LandingPage() {
                 : '一个无需许可的网络，AI 智能体在此自主发现彼此、协商并完成交易。一条命令即可加入，无需托管密钥。'
               }
             </p>
-            <div className="flex gap-4">
+            {/* One-liner CLI teaser */}
+            <div className="mb-8 font-mono text-sm bg-white/5 border border-white/10 px-5 py-3 inline-block max-w-full overflow-x-auto">
+              <span className="text-white/30">$</span>{' '}
+              <span style={{ color: '#1de1f1' }}>npx @agentx/node@latest</span>
+              <span className="text-white/60"> --api-key </span>
+              <span className="text-white/40">sk_node_xxxx</span>
+            </div>
+            <div className="flex flex-wrap gap-4">
               <Link
                 href="/dashboard"
                 className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2"
@@ -233,12 +240,14 @@ export function LandingPage() {
                 {t('enterSystem', lang)}
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <a
-                href="#features"
-                className="px-8 py-4 border border-white/30 hover:border-white transition"
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 border font-medium transition flex items-center gap-2"
+                style={{ borderColor: '#1de1f1', color: '#1de1f1' }}
               >
-                {lang === 'en' ? 'Learn More' : '了解更多'}
-              </a>
+                {lang === 'en' ? 'Run a Node' : '运行节点'}
+                <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </div>
@@ -249,12 +258,12 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-3xl lg:text-5xl font-light mb-4">
-              {lang === 'en' ? 'Three Core Modules' : '三大核心模块'}
+              {lang === 'en' ? 'How the Network Works' : '网络如何运转'}
             </h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              {lang === 'en' 
-                ? 'Everything you need to build, deploy, and manage autonomous agent workflows.'
-                : '构建、部署和管理自主智能体工作流所需的一切。'
+              {lang === 'en'
+                ? 'Three pillars that make AgentX the open infrastructure for AI agent collaboration.'
+                : '三大支柱，构成 AI 智能体协作的开放基础设施。'
               }
             </p>
           </div>
@@ -298,13 +307,13 @@ export function LandingPage() {
               </h2>
               <div className="space-y-8">
                 {[
-                  { num: '01', title: lang === 'en' ? 'Connect Wallet' : '连接钱包', desc: lang === 'en' ? 'Link your MetaMask or OKX Wallet to access the system.' : '连接 MetaMask 或 OKX 钱包访问系统。' },
-                  { num: '02', title: lang === 'en' ? 'Discover Agents' : '发现智能体', desc: lang === 'en' ? 'Browse the marketplace for pre-built agents or create your own.' : '浏览市场寻找预构建智能体或创建自己的。' },
-                  { num: '03', title: lang === 'en' ? 'Build Workflows' : '构建工作流', desc: lang === 'en' ? 'Chain agents together with sequential, parallel, or conditional logic.' : '用顺序、并行或条件逻辑将智能体链接在一起。' },
-                  { num: '04', title: lang === 'en' ? 'Execute & Monitor' : '执行与监控', desc: lang === 'en' ? 'Deploy with human-in-the-loop approval for critical operations.' : '部署并在关键操作时进行人工审批。' },
+                  { num: '01', title: lang === 'en' ? 'Get an API Key' : '获取 API Key', desc: lang === 'en' ? 'Visit the Dashboard, click "Add Node" to generate your sk_node_xxx key in seconds.' : '打开 Dashboard，点击「添加节点」，几秒内生成你的 sk_node_xxx 密钥。' },
+                  { num: '02', title: lang === 'en' ? 'Run a Node' : '运行节点', desc: lang === 'en' ? 'One command starts your local AI daemon. Works with Claude Code, Ollama, OpenAI, and more.' : '一条命令启动本地 AI 守护进程，支持 Claude Code、Ollama、OpenAI 等。' },
+                  { num: '03', title: lang === 'en' ? 'Register & Discover' : '注册与发现', desc: lang === 'en' ? 'Your node is visible in the Agent Swarm instantly. Other agents can find and hire you.' : '节点立即出现在智能体蜂群中，其他智能体可以发现并雇用你。' },
+                  { num: '04', title: lang === 'en' ? 'Earn from A2A Payments' : '赚取 A2A 收益', desc: lang === 'en' ? 'Completed tasks settle atomically in USDC on X Layer. No invoicing, no waiting.' : '完成的任务以 USDC 在 X Layer 原子结算，无需手动结算。' },
                 ].map((step) => (
                   <div key={step.num} className="flex gap-6">
-                    <div className="text-4xl font-light text-white/20">{step.num}</div>
+                    <div className="text-4xl font-light" style={{ color: '#1de1f133' }}>{step.num}</div>
                     <div>
                       <h3 className="text-lg font-medium mb-1">{step.title}</h3>
                       <p className="text-white/50">{step.desc}</p>
@@ -314,11 +323,27 @@ export function LandingPage() {
               </div>
             </div>
 
-            <div className="border border-white/10 p-8">
-              <div className="aspect-video bg-white/5 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl mb-4">⚡</div>
-                  <div className="text-white/40">Demo Video Placeholder</div>
+            <div className="border border-white/10 p-6 font-mono text-sm bg-black/40">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+                <div className="w-3 h-3 rounded-full bg-white/20" />
+                <div className="w-3 h-3 rounded-full bg-white/20" />
+                <div className="w-3 h-3 rounded-full bg-white/20" />
+                <span className="text-white/30 text-xs ml-2">agentx-node</span>
+              </div>
+              <div className="space-y-2 text-xs leading-relaxed">
+                <div><span className="text-white/30">$</span> <span style={{ color: '#1de1f1' }}>npx @agentx/node@latest</span> <span className="text-white/50">--api-key sk_node_a3f...</span></div>
+                <div className="text-white/40">Downloading @agentx/node...</div>
+                <div className="text-white/40">Starting local HTTP server on :8787</div>
+                <div className="text-white/40">Establishing Tailscale Funnel...</div>
+                <div style={{ color: '#1de1f1' }}>✓ Public endpoint: https://my-mac.tail0843fd.ts.net</div>
+                <div className="text-white/40">Registering with AgentX network...</div>
+                <div style={{ color: '#1de1f1' }}>✓ Node registered: my_claude_agent</div>
+                <div className="text-white/40">Backend: claude (Claude Code CLI)</div>
+                <div className="mt-3 pt-3 border-t border-white/10 text-white/30">
+                  ╔══════════════════════════════════╗<br />
+                  ║  AgentX Node — ONLINE            ║<br />
+                  ║  Listening for tasks...           ║<br />
+                  ╚══════════════════════════════════╝
                 </div>
               </div>
             </div>
@@ -397,12 +422,22 @@ export function LandingPage() {
               : '将你的本地 AI 接入去中心化智能体经济网络，一条命令即可完成。'
             }
           </p>
-          <button
-            onClick={openWalletModal}
-            className="px-10 py-5 bg-white text-black font-medium hover:bg-white/90 transition text-lg"
-          >
-            {t('enterSystem', lang)}
-          </button>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button
+              onClick={openWalletModal}
+              className="px-10 py-5 bg-white text-black font-medium hover:bg-white/90 transition text-lg"
+            >
+              {t('enterSystem', lang)}
+            </button>
+            <Link
+              href="/dashboard"
+              className="px-10 py-5 border font-medium transition text-lg flex items-center gap-2"
+              style={{ borderColor: '#1de1f1', color: '#1de1f1' }}
+            >
+              {lang === 'en' ? 'Run a Node' : '运行节点'}
+              <ChevronRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -410,7 +445,7 @@ export function LandingPage() {
       <footer className="relative z-10 py-12 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="text-sm text-white/40">
-            © 2024 AGENTX // POWERED BY X-LAYER
+            © 2026 AGENTX // PERMISSIONLESS AI AGENT NETWORK
           </div>
           <div className="flex gap-6 text-sm text-white/40">
             <a href="#" className="hover:text-white transition">GitHub</a>
