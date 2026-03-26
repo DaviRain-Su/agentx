@@ -9,7 +9,10 @@ import { useRouter } from "next/navigation";
 import { ethers } from "ethers";
 import { Workflow as WorkflowIcon, Play, ChevronRight, CheckCircle, Clock, AlertCircle, Loader2, Plus, X, Terminal } from "lucide-react";
 import Link from "next/link";
-import { workerApi, type WorkerAgentEntry, type A2ASimulateResponse } from "@/lib/api/worker";
+import { workerApi, type ActiveNode, type A2ASimulateResponse } from "@/lib/api/worker";
+
+// Orchestrator address is deterministic from NODE_PRIVATE_KEY (documented in CLAUDE.md)
+const ORCHESTRATOR_ADDRESS = "0xbE24E6aa9063a7d4885E84E2427Ec6aE31144Ee0";
 
 // Workflow templates stored in frontend (could be moved to IPFS/chain later)
 const WORKFLOW_TEMPLATES = [
@@ -108,7 +111,7 @@ interface CreateWorkflowModalProps {
 }
 
 function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWorkflowModalProps) {
-  const [agents, setAgents] = useState<Record<string, WorkerAgentEntry>>({});
+  const [agents, setAgents] = useState<ActiveNode[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [goal, setGoal] = useState("");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
@@ -116,8 +119,8 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    workerApi.getAgents(workerBase)
-      .then((d) => { setAgents(d); setLoadingAgents(false); })
+    workerApi.getActiveNodes(workerBase)
+      .then((nodes) => { setAgents(nodes.filter(n => n.builtin)); setLoadingAgents(false); })
       .catch(() => setLoadingAgents(false));
   }, [workerBase]);
 
@@ -178,18 +181,18 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {lang === "en" ? "Loading agents..." : "加载 Agent 中..."}
               </div>
-            ) : Object.keys(agents).length === 0 ? (
+            ) : agents.length === 0 ? (
               <p className="text-white/40 text-sm">
                 {lang === "en" ? "No agents found. Worker may be offline." : "未找到 Agent，Worker 可能离线。"}
               </p>
             ) : (
               <div className="space-y-2">
-                {Object.entries(agents).map(([name, info]) => {
-                  const checked = selectedAgents.includes(name);
+                {agents.map((node) => {
+                  const checked = selectedAgents.includes(node.name);
                   return (
                     <button
-                      key={name}
-                      onClick={() => toggleAgent(name)}
+                      key={node.nodeId}
+                      onClick={() => toggleAgent(node.name)}
                       className={`w-full flex items-center gap-3 p-3 border transition-all text-left ${
                         checked ? "border-white/50 bg-white/10" : "border-white/10 bg-white/5 hover:border-white/30"
                       }`}
@@ -200,10 +203,10 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
                         <Terminal className={`w-4 h-4 ${checked ? "text-black" : "text-white/60"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white capitalize">{name.replace(/-/g, " ")}</p>
+                        <p className="text-sm font-medium text-white capitalize">{node.name.replace(/-/g, " ")}</p>
                         <p className="text-xs text-white/40 truncate">
-                          {info.address.slice(0, 6)}...{info.address.slice(-4)}
-                          {info.fee ? ` · ${info.fee}` : ""}
+                          {node.address ? `${node.address.slice(0, 6)}...${node.address.slice(-4)}` : ""}
+                          {node.fee ? ` · ${node.fee} ${node.feeToken ?? "OKB"}` : ""}
                         </p>
                       </div>
                       <div className={`w-4 h-4 border flex items-center justify-center shrink-0 ${
@@ -221,7 +224,7 @@ function CreateWorkflowModal({ workerBase, lang, onClose, onSubmit }: CreateWork
           {/* Budget */}
           <div>
             <label className="text-xs text-white/40 uppercase tracking-wider block mb-2">
-              {lang === "en" ? "Budget (USDC)" : "预算 (USDC)"}
+              {lang === "en" ? "Budget (axUSDC)" : "预算 (axUSDC)"}
             </label>
             <input
               type="number"
@@ -375,16 +378,10 @@ export default function WorkflowsPage() {
     userAddress: string,
     budget: string
   ) => {
-    const agents = await workerApi.getAgents(workerBase);
-    const orchestratorAddress = agents?.orchestrator?.address;
-    if (!orchestratorAddress || !ethers.isAddress(orchestratorAddress)) {
-      throw new Error("Invalid orchestrator address from worker");
-    }
-
     const budgetWei = ethers.parseUnits(budget, 6);
-    const allowance = await token.allowance(userAddress, orchestratorAddress);
+    const allowance = await (token as ethers.Contract).allowance(userAddress, ORCHESTRATOR_ADDRESS);
     if (allowance < budgetWei) {
-      const approveTx = await token.approve(orchestratorAddress, budgetWei);
+      const approveTx = await (token as ethers.Contract).approve(ORCHESTRATOR_ADDRESS, budgetWei);
       await approveTx.wait();
     }
   };
@@ -477,17 +474,10 @@ export default function WorkflowsPage() {
         }
       }
 
-      // 2. Get orchestrator address from worker
-      const agents = await workerApi.getAgents(workerBase);
-      const orchestratorAddr = agents?.orchestrator?.address;
-      if (!orchestratorAddr || !ethers.isAddress(orchestratorAddr)) {
-        throw new Error("Cannot fetch orchestrator address from worker");
-      }
-
-      // 3. Approve orchestrator to spend axUSDC (wallet signature #1)
-      const currentAllowance = await token.allowance(userAddress, orchestratorAddr);
+      // 2. Approve orchestrator to spend axUSDC (deterministic address, no Worker call needed)
+      const currentAllowance = await token.allowance(userAddress, ORCHESTRATOR_ADDRESS);
       if (currentAllowance < budgetWei) {
-        const approveTx = await token.approve(orchestratorAddr, budgetWei);
+        const approveTx = await token.approve(ORCHESTRATOR_ADDRESS, budgetWei);
         await approveTx.wait();
       }
 
@@ -680,7 +670,7 @@ export default function WorkflowsPage() {
                     <span className="text-xs text-white/40 bg-white/5 px-2 py-1 block">
                       {workflow.steps.length} {lang === "en" ? "steps" : "步骤"}
                     </span>
-                    <span className="text-xs text-white/60 mt-1 block">{resolveBudget(workflow)} USDC</span>
+                    <span className="text-xs text-white/60 mt-1 block">{resolveBudget(workflow)} axUSDC</span>
                   </div>
                 </div>
 
@@ -705,7 +695,7 @@ export default function WorkflowsPage() {
 
                 <div className="mb-4">
                   <label className="text-xs text-white/40 uppercase tracking-wider">
-                    {lang === "en" ? "Budget (USDC)" : "预算 (USDC)"}
+                    {lang === "en" ? "Budget (axUSDC)" : "预算 (axUSDC)"}
                   </label>
                   <input
                     value={budgetByWorkflow[workflow.id] ?? workflow.budget}
