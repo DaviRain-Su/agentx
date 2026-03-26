@@ -189,14 +189,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {isSidebarOpen && <span className="font-medium text-sm">Settings</span>}
           </Link>
 
-          {/* Disconnect */}
-          <button
-            onClick={disconnect}
-            className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-red-400 transition-all"
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {isSidebarOpen && <span className="font-medium text-sm">{t("disconnect", lang)}</span>}
-          </button>
+          {/* Connect / Disconnect */}
+          {address ? (
+            <button
+              onClick={disconnect}
+              className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-red-400 transition-all"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              {isSidebarOpen && <span className="font-medium text-sm">{t("disconnect", lang)}</span>}
+            </button>
+          ) : (
+            <Link
+              href="/"
+              className="w-full flex items-center gap-4 px-4 py-3 text-white/60 hover:bg-white/5 hover:text-white transition-all"
+            >
+              <Zap className="w-5 h-5 shrink-0" />
+              {isSidebarOpen && <span className="font-medium text-sm">{t("connect", lang)}</span>}
+            </Link>
+          )}
         </div>
       </aside>
 

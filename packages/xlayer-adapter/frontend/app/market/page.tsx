@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useWeb3 } from "@/components/Web3Provider";
 import { useLangStore } from "@/store/lang";
-import { Search, Zap, Plus, X, Loader2, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { Search, Zap, Plus, X, Loader2, CheckCircle, ExternalLink, RefreshCw, Wallet } from "lucide-react";
 import { ethers } from "ethers";
 import { workerApi } from "@/lib/api/worker";
 
@@ -391,6 +391,7 @@ export default function MarketPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPublish, setShowPublish] = useState(false);
   const { agents, loading, reload } = useMarketAgents();
+  const { address, connect, isConnecting } = useWeb3();
 
   const handleTry = (agentId: string) => {
     router.push(`/workflows?agent=${agentId}`);
@@ -429,13 +430,26 @@ export default function MarketPage() {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
-            <button
-              onClick={() => setShowPublish(true)}
-              className="px-5 py-2.5 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              {lang === "en" ? "Publish Agent" : "发布 Agent"}
-            </button>
+            {address ? (
+              <button
+                onClick={() => setShowPublish(true)}
+                className="px-5 py-2.5 bg-white text-black font-medium hover:bg-white/90 transition flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {lang === "en" ? "Publish Agent" : "发布 Agent"}
+              </button>
+            ) : (
+              <button
+                onClick={connect}
+                disabled={isConnecting}
+                className="px-5 py-2.5 border border-white/30 text-white font-medium hover:bg-white/10 transition flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                <Wallet className="w-4 h-4" />
+                {isConnecting 
+                  ? (lang === "en" ? "Connecting..." : "连接中...")
+                  : (lang === "en" ? "Connect Wallet" : "连接钱包")}
+              </button>
+            )}
           </div>
         </div>
 
@@ -594,22 +608,44 @@ export default function MarketPage() {
           ))}
 
           {/* Publish CTA card */}
-          <button
-            onClick={() => setShowPublish(true)}
-            className="p-6 border border-dashed border-white/20 hover:border-white/40 transition-all bg-transparent group flex flex-col items-center justify-center gap-3 min-h-[200px]"
-          >
-            <div className="w-12 h-12 border border-dashed border-white/20 group-hover:border-white/40 flex items-center justify-center transition">
-              <Plus className="w-6 h-6 text-white/30 group-hover:text-white/60 transition" />
-            </div>
-            <div className="text-center">
-              <p className="text-white/40 group-hover:text-white/60 transition text-sm font-medium">
-                {lang === "en" ? "Publish Your Agent" : "发布你的 Agent"}
-              </p>
-              <p className="text-white/20 text-xs mt-1">
-                {lang === "en" ? "Register on X Layer · Earn USDC per call" : "注册到 X Layer · 每次调用赚取 USDC"}
-              </p>
-            </div>
-          </button>
+          {address ? (
+            <button
+              onClick={() => setShowPublish(true)}
+              className="p-6 border border-dashed border-white/20 hover:border-white/40 transition-all bg-transparent group flex flex-col items-center justify-center gap-3 min-h-[200px]"
+            >
+              <div className="w-12 h-12 border border-dashed border-white/20 group-hover:border-white/40 flex items-center justify-center transition">
+                <Plus className="w-6 h-6 text-white/30 group-hover:text-white/60 transition" />
+              </div>
+              <div className="text-center">
+                <p className="text-white/40 group-hover:text-white/60 transition text-sm font-medium">
+                  {lang === "en" ? "Publish Your Agent" : "发布你的 Agent"}
+                </p>
+                <p className="text-white/20 text-xs mt-1">
+                  {lang === "en" ? "Register on X Layer · Earn USDC per call" : "注册到 X Layer · 每次调用赚取 USDC"}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={connect}
+              disabled={isConnecting}
+              className="p-6 border border-dashed border-white/10 hover:border-white/30 transition-all bg-transparent group flex flex-col items-center justify-center gap-3 min-h-[200px]"
+            >
+              <div className="w-12 h-12 border border-dashed border-white/10 group-hover:border-white/30 flex items-center justify-center transition">
+                <Wallet className="w-6 h-6 text-white/20 group-hover:text-white/40 transition" />
+              </div>
+              <div className="text-center">
+                <p className="text-white/30 group-hover:text-white/50 transition text-sm font-medium">
+                  {isConnecting 
+                    ? (lang === "en" ? "Connecting..." : "连接中...")
+                    : (lang === "en" ? "Connect to Publish" : "连接钱包以发布")}
+                </p>
+                <p className="text-white/15 text-xs mt-1">
+                  {lang === "en" ? "Wallet required to register agents" : "注册 Agent 需要钱包"}
+                </p>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Empty state */}
