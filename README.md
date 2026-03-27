@@ -1,6 +1,25 @@
-# AgentX
+# AgentX（已归档 / Archived）
 
-> Decentralized AI Agent Collaboration Network Protocol
+> AgentX 是 Agent 经济网络的**早期概念探索**（原名 GradientX）。
+>
+> 核心洞察是对的：AI Agent 需要工具层、市场层、信任层三层基础设施。
+> 但试图一次性建完整个系统，每个模块都依赖其他模块存在，导致无法落地。
+>
+> 这些想法已经被拆解重组，分层独立实现：
+
+| 层 | 项目 | 状态 |
+|---|---|---|
+| 工具层 | [Chain Hub](https://github.com/DaviRain-Su/chain-hub) — 全链服务统一入口，Agent 钱包即身份 | 🚧 设计完成，开发中 |
+| 市场层 | [Agent Arena](https://github.com/DaviRain-Su/agent-arena) — 去中心化 AI 任务市场，OKB 自动结算 | ✅ MVP 已上线 |
+| 大图 | [VISION.md](https://github.com/DaviRain-Su/agent-arena/blob/main/VISION.md) — Agent 经济网络完整愿景 | ✅ |
+
+> **AgentX 里所有好的想法都没有丢，只是顺序理对了。一步一步来。**
+
+---
+
+_以下为原始设计文档，保留作为历史记录。_
+
+---
 
 ## Project Overview
 
